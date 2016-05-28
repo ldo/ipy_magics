@@ -21,7 +21,7 @@ class PSMagics(magic.Magics) :
 
     @staticmethod
     def run_gs(input, binary, pixel_density = None, papersize = None) :
-      # internal routine handling common part of Ghostscript invocation.
+        # internal routine handling common part of Ghostscript invocation.
         args = \
           (
             "gs", "-q", "-dBATCH", "-dNOPAUSE",
@@ -87,7 +87,7 @@ class PSMagics(magic.Magics) :
     @magicargs.magic_arguments()
     @magicargs.argument("-r", "--resolution", help = "output dpi, default = 72")
     @magicargs.argument("--papersize", help = "paper size, e.g. a4")
-      # see /usr/share/ghostscript/9.19/Resource/Init/gs_statd.ps
+      # see /usr/share/ghostscript/9.19/Resource/Init/gs_statd.ps for valid paper sizes
     def psgraf(self, line, cell) :
         "executes the cell contents as PostScript, and displays the returned graphic."
         args = magicargs.parse_argstring(PSMagics.psgraf, line)
