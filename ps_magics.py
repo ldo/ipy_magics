@@ -6,6 +6,7 @@
 
 import subprocess
 from IPython.display import \
+    display_pdf, \
     display_png
 from IPython.core import \
     magic
@@ -18,16 +19,18 @@ class PSMagics(magic.Magics) :
     " the output:\n" \
     " %%pstext -- displays returned output as text.\n" \
     " %%psgraf -- displays returned output as a graphic."
+    " %%pspdf -- displays returned output as one or more PDF pages."
 
     @staticmethod
-    def run_gs(input, binary, pixel_density = None, papersize = None) :
+    def run_gs(input, binary, output_format = "png16m", pixel_density = None, papersize = None) :
         # internal routine handling common part of Ghostscript invocation.
         args = \
           (
             "gs", "-q", "-dBATCH", "-dNOPAUSE",
               # -dBATCH needed to turn off prompt (doc says -dNOPAUSE does this, but it
               # lies).
-            "-sDEVICE=png16m", "-sOutputFile=/dev/stdout",
+            "-sDEVICE=%s" % output_format,
+            "-sOutputFile=/dev/stdout",
           )
         if pixel_density != None :
             args += \
@@ -87,7 +90,7 @@ class PSMagics(magic.Magics) :
     @magicargs.magic_arguments()
     @magicargs.argument("-r", "--resolution", help = "output dpi, default = 72")
     @magicargs.argument("--papersize", help = "paper size, e.g. a4")
-      # see /usr/share/ghostscript/9.19/Resource/Init/gs_statd.ps for valid paper sizes
+      # see /usr/share/ghostscript/*/Resource/Init/gs_statd.ps for valid paper sizes
     def psgraf(self, line, cell) :
         "executes the cell contents as PostScript, and displays the returned graphic."
         args = magicargs.parse_argstring(PSMagics.psgraf, line)
@@ -103,6 +106,27 @@ class PSMagics(magic.Magics) :
             raw = True
           )
     #end psgraf
+
+    @magic.cell_magic
+    @magicargs.magic_arguments()
+    @magicargs.argument("--papersize", help = "paper size, e.g. a4")
+      # see /usr/share/ghostscript/*/Resource/Init/gs_statd.ps for valid paper sizes
+    def pspdf(self, line, cell) :
+        "executes the cell contents as PostScript, and displays the returned pages" \
+        " as a PDF stream."
+        args = magicargs.parse_argstring(PSMagics.pspdf, line)
+        display_pdf \
+          (
+            self.run_gs
+              (
+                input = cell.encode(),
+                binary = True,
+                output_format = "pdfwrite",
+                papersize = getattr(args, "papersize", None),
+              ),
+            raw = True
+          )
+    #end pspdf
 
 #end PSMagics
 
