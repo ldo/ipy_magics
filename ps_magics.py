@@ -18,7 +18,7 @@ class PSMagics(magic.Magics) :
     "defines cell magics for executing PostScript code using Ghostscript and displaying" \
     " the output:\n" \
     " %%pstext -- displays returned output as text.\n" \
-    " %%psgraf -- displays returned output as a graphic."
+    " %%psgraf -- displays returned output as a graphic.\n" \
     " %%pspdf -- displays returned output as one or more PDF pages."
 
     @staticmethod
