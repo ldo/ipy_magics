@@ -130,4 +130,6 @@ class PSMagics(magic.Magics) :
 
 #end PSMagics
 
-get_ipython().register_magics(PSMagics)
+if __name__ == "__main__" :
+    get_ipython().register_magics(PSMagics)
+#end if
