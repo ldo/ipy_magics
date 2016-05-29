@@ -34,13 +34,16 @@ class PSMagics(magic.Magics) :
         for fd in (to_parent_binary,) :
             fcntl.fcntl(fd, fcntl.F_SETFD, fcntl.fcntl(fd, fcntl.F_GETFD) & ~fcntl.FD_CLOEXEC)
         #end for
+        # wrap fds in file objects so Python will automatically close them for me
+        from_child_binary = open(from_child_binary, "rb", buffering = 0)
+        to_parent_binary = open(to_parent_binary, "wb", buffering = 0)
         args = \
           (
             "gs", "-q", "-dBATCH", "-dNOPAUSE",
               # -dBATCH needed to turn off prompt (doc says -dNOPAUSE does this, but it
               # lies).
             "-sDEVICE=%s" % output_format,
-            "-sOutputFile=/dev/fd/%d" % to_parent_binary,
+            "-sOutputFile=/dev/fd/%d" % to_parent_binary.fileno(),
               # separate channel from stdout for returning output graphics
           )
         if pixel_density != None :
@@ -68,17 +71,17 @@ class PSMagics(magic.Magics) :
             stdout = subprocess.PIPE,
             #stderr = subprocess.PIPE, # Ghostscript returns traceback in stdout
             universal_newlines = False, # can’t use this
-            pass_fds = (to_parent_binary,),
+            pass_fds = (to_parent_binary.fileno(),),
             close_fds = True # make sure no superfluous references to pipes
           )
-        os.close(to_parent_binary)
+        to_parent_binary.close()
           # so I get EOF indication on receiving end when child process exits
-        to_child_text = proc_gs.stdin.fileno()
-        from_child_text = proc_gs.stdout.fileno()
+        to_child_text = proc_gs.stdin
+        from_child_text = proc_gs.stdout
         output = {"text" : b"", "binary" : b""}
         to_read = 1024 # arbitrary
         if len(input) == 0 :
-            os.close(to_child_text)
+            to_child_text.close()
         #end if
         while True :
             did_something = False
@@ -90,13 +93,13 @@ class PSMagics(magic.Magics) :
                 0.01 # timeout
               )
             if to_child_text in writeable :
-                nrbytes = os.write(to_child_text, input)
+                nrbytes = os.write(to_child_text.fileno(), input)
                 if nrbytes != 0 :
                     did_something = True
                 #end if
                 input = input[nrbytes:]
                 if len(input) == 0 :
-                    os.close(to_child_text)
+                    to_child_text.close()
                 #end if
             #end if
             for chan, from_child in \
@@ -107,7 +110,7 @@ class PSMagics(magic.Magics) :
             :
                 if from_child in readable :
                     while True :
-                        bytes_read = os.read(from_child, to_read)
+                        bytes_read = os.read(from_child.fileno(), to_read)
                         output[chan] += bytes_read
                         if len(bytes_read) != 0 :
                             did_something = True
@@ -120,7 +123,7 @@ class PSMagics(magic.Magics) :
             if not did_something and proc_gs.poll() != None :
                 break
         #end while
-        os.close(from_child_binary)
+        from_child_binary.close()
         if proc_gs.returncode != 0 :
             if False :
                 raise subprocess.CalledProcessError(cmd = "gs", returncode = proc_gs.returncode)
