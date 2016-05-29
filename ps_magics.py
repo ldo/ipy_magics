@@ -4,7 +4,10 @@
 # in the notebook.
 #-
 
+import os
 import subprocess
+import select
+import fcntl
 from IPython.display import \
     display_pdf, \
     display_png
@@ -22,15 +25,23 @@ class PSMagics(magic.Magics) :
     " %%pspdf -- displays returned output as one or more PDF pages."
 
     @staticmethod
-    def run_gs(input, binary, output_format = "png16m", pixel_density = None, papersize = None) :
+    def run_gs(input, output_format = "png16m", pixel_density = None, papersize = None) :
         # internal routine handling common part of Ghostscript invocation.
+        if not isinstance(input, bytes) :
+            input = input.encode()
+        #end if
+        from_child_binary, to_parent_binary = os.pipe()
+        for fd in (to_parent_binary,) :
+            fcntl.fcntl(fd, fcntl.F_SETFD, fcntl.fcntl(fd, fcntl.F_GETFD) & ~fcntl.FD_CLOEXEC)
+        #end for
         args = \
           (
             "gs", "-q", "-dBATCH", "-dNOPAUSE",
               # -dBATCH needed to turn off prompt (doc says -dNOPAUSE does this, but it
               # lies).
             "-sDEVICE=%s" % output_format,
-            "-sOutputFile=/dev/stdout",
+            "-sOutputFile=/dev/fd/%d" % to_parent_binary,
+              # separate channel from stdout for returning output graphics
           )
         if pixel_density != None :
             args += \
@@ -56,23 +67,68 @@ class PSMagics(magic.Magics) :
             stdin = subprocess.PIPE,
             stdout = subprocess.PIPE,
             #stderr = subprocess.PIPE, # Ghostscript returns traceback in stdout
-            universal_newlines = not binary,
+            universal_newlines = False, # can’t use this
+            pass_fds = (to_parent_binary,),
             close_fds = True # make sure no superfluous references to pipes
           )
-        stdout, stderr = proc_gs.communicate(input = input)
-        status = proc_gs.wait()
-        if status != 0 :
-            if False :
-                raise subprocess.CalledProcessError(cmd = "gs", returncode = status)
-            else :
-                if binary :
-                    stdout = stdout.decode()
+        os.close(to_parent_binary)
+          # so I get EOF indication on receiving end when child process exits
+        to_child_text = proc_gs.stdin.fileno()
+        from_child_text = proc_gs.stdout.fileno()
+        output = {"text" : b"", "binary" : b""}
+        to_read = 1024 # arbitrary
+        if len(input) == 0 :
+            os.close(to_child_text)
+        #end if
+        while True :
+            did_something = False
+            readable, writeable, _ = select.select \
+              (
+                (from_child_text, from_child_binary), # readable
+                ((), (to_child_text,))[len(input) != 0], # writable
+                (), # except
+                0.01 # timeout
+              )
+            if to_child_text in writeable :
+                nrbytes = os.write(to_child_text, input)
+                if nrbytes != 0 :
+                    did_something = True
                 #end if
-                raise RuntimeError("gs command returned %s" % stdout)
+                input = input[nrbytes:]
+                if len(input) == 0 :
+                    os.close(to_child_text)
+                #end if
+            #end if
+            for chan, from_child in \
+              (
+                ("text", from_child_text),
+                ("binary", from_child_binary),
+              ) \
+            :
+                if from_child in readable :
+                    while True :
+                        bytes_read = os.read(from_child, to_read)
+                        output[chan] += bytes_read
+                        if len(bytes_read) != 0 :
+                            did_something = True
+                        #end if
+                        if len(bytes_read) < to_read :
+                            break
+                    #end while
+                #end if
+            #end for
+            if not did_something and proc_gs.poll() != None :
+                break
+        #end while
+        if proc_gs.returncode != 0 :
+            if False :
+                raise subprocess.CalledProcessError(cmd = "gs", returncode = proc_gs.returncode)
+            else :
+                raise RuntimeError("gs command returned %s" % output["text"].decode())
             #end if
         #end if
         return \
-            stdout
+            output["text"].decode(), output["binary"]
     #end run_gs
 
     # Note on args to actual magic methods:
@@ -83,7 +139,7 @@ class PSMagics(magic.Magics) :
     def pstext(self, line, cell) :
         "executes the cell contents as PostScript, and displays returned text output."
         return \
-            self.run_gs(cell, False)
+            self.run_gs(cell)[0]
     #end pstext
 
     @magic.cell_magic
@@ -98,11 +154,10 @@ class PSMagics(magic.Magics) :
           (
             self.run_gs
               (
-                input = cell.encode(),
-                binary = True,
+                input = cell,
                 pixel_density = getattr(args, "resolution", None),
                 papersize = getattr(args, "papersize", None),
-              ),
+              )[1],
             raw = True
           )
     #end psgraf
@@ -119,11 +174,10 @@ class PSMagics(magic.Magics) :
           (
             self.run_gs
               (
-                input = cell.encode(),
-                binary = True,
+                input = cell,
                 output_format = "pdfwrite",
                 papersize = getattr(args, "papersize", None),
-              ),
+              )[1],
             raw = True
           )
     #end pspdf
