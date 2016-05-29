@@ -18,14 +18,11 @@ import IPython.core.magic_arguments as \
 
 @magic.magics_class
 class PSMagics(magic.Magics) :
-    "defines cell magics for executing PostScript code using Ghostscript and displaying" \
-    " the output:\n" \
-    " %%pstext -- displays returned output as text.\n" \
-    " %%psgraf -- displays returned output as a graphic.\n" \
-    " %%pspdf -- displays returned output as one or more PDF pages."
+    "defines cell magic for executing PostScript code using Ghostscript and displaying" \
+    " the output."
 
     @staticmethod
-    def run_gs(input, output_format = "png16m", pixel_density = None, papersize = None) :
+    def run_gs(input, output_format, pixel_density = None, papersize = None) :
         # internal routine handling common part of Ghostscript invocation.
         if not isinstance(input, bytes) :
             input = input.encode()
@@ -137,54 +134,36 @@ class PSMagics(magic.Magics) :
 
     # Note on args to actual magic methods:
     #“line” is whatever was typed on the %% line after the magic name.
-    #“cell” is the rest of the cell contents."
+    #“cell” is the rest of the cell contents.
 
     @magic.cell_magic
-    def pstext(self, line, cell) :
-        "executes the cell contents as PostScript, and displays returned text output."
+    @magicargs.magic_arguments()
+    @magicargs.argument("--dpi", help = "output dpi, default = 72")
+    @magicargs.argument("--format", help = "output format, PNG or PDF, defaults to PNG")
+    @magicargs.argument("--papersize", help = "paper size, e.g. a4")
+      # see /usr/share/ghostscript/*/Resource/Init/gs_statd.ps for valid paper sizes
+    def ps(self, line, cell) :
+        "executes the cell contents as PostScript, and displays returned text or graphical output."
+        args = magicargs.parse_argstring(PSMagics.ps, line)
+        format = getattr(args, "format", None)
+        if format != None :
+            format = format.lower()
+        else :
+            format = "png"
+        #end if
+        result_text, result_binary = self.run_gs \
+          (
+            input = cell,
+            output_format = {"png" : "png16m", "pdf" : "pdfwrite"}[format],
+            pixel_density = getattr(args, "dpi", None),
+            papersize = getattr(args, "papersize", None),
+          )
+        if len(result_binary) != 0 :
+            {"png" : display_png, "pdf" : display_pdf}[format](result_binary, raw = True)
+        #end if
         return \
-            self.run_gs(cell)[0]
-    #end pstext
-
-    @magic.cell_magic
-    @magicargs.magic_arguments()
-    @magicargs.argument("-r", "--resolution", help = "output dpi, default = 72")
-    @magicargs.argument("--papersize", help = "paper size, e.g. a4")
-      # see /usr/share/ghostscript/*/Resource/Init/gs_statd.ps for valid paper sizes
-    def psgraf(self, line, cell) :
-        "executes the cell contents as PostScript, and displays the returned graphic."
-        args = magicargs.parse_argstring(PSMagics.psgraf, line)
-        display_png \
-          (
-            self.run_gs
-              (
-                input = cell,
-                pixel_density = getattr(args, "resolution", None),
-                papersize = getattr(args, "papersize", None),
-              )[1],
-            raw = True
-          )
-    #end psgraf
-
-    @magic.cell_magic
-    @magicargs.magic_arguments()
-    @magicargs.argument("--papersize", help = "paper size, e.g. a4")
-      # see /usr/share/ghostscript/*/Resource/Init/gs_statd.ps for valid paper sizes
-    def pspdf(self, line, cell) :
-        "executes the cell contents as PostScript, and displays the returned pages" \
-        " as a PDF stream."
-        args = magicargs.parse_argstring(PSMagics.pspdf, line)
-        display_pdf \
-          (
-            self.run_gs
-              (
-                input = cell,
-                output_format = "pdfwrite",
-                papersize = getattr(args, "papersize", None),
-              )[1],
-            raw = True
-          )
-    #end pspdf
+            result_text
+    #end ps
 
 #end PSMagics
 
