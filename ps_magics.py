@@ -120,6 +120,7 @@ class PSMagics(magic.Magics) :
             if not did_something and proc_gs.poll() != None :
                 break
         #end while
+        os.close(from_child_binary)
         if proc_gs.returncode != 0 :
             if False :
                 raise subprocess.CalledProcessError(cmd = "gs", returncode = proc_gs.returncode)
