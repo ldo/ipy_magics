@@ -8,9 +8,12 @@ import os
 import subprocess
 import select
 import fcntl
+from markdown import \
+    markdown # from separate python3-markdown package
 from IPython.display import \
     display_pdf, \
-    display_png
+    display_png, \
+    HTML
 from IPython.core import \
     magic
 import IPython.core.magic_arguments as \
@@ -163,6 +166,8 @@ class PSMagics(magic.Magics) :
         #end if
         if len(result_text) == 0 :
             result_text = None # don’t display empty string
+        else :
+            result_text = HTML(markdown(result_text))
         #end if
         return \
             result_text
