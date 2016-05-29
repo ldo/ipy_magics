@@ -161,6 +161,9 @@ class PSMagics(magic.Magics) :
         if len(result_binary) != 0 :
             {"png" : display_png, "pdf" : display_pdf}[format](result_binary, raw = True)
         #end if
+        if len(result_text) == 0 :
+            result_text = None # don’t display empty string
+        #end if
         return \
             result_text
     #end ps
