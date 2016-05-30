@@ -25,7 +25,7 @@ class PSMagics(magic.Magics) :
     " the output."
 
     @staticmethod
-    def run_gs(input, graphics_format, pixel_density = None, papersize = None) :
+    def run_gs(input, graphics_format, timeout = None, pixel_density = None, papersize = None) :
         # internal routine handling common part of Ghostscript invocation.
         if not isinstance(input, bytes) :
             input = input.encode()
@@ -90,7 +90,7 @@ class PSMagics(magic.Magics) :
                 (from_child_text, from_child_binary), # readable
                 ((), (to_child_text,))[len(input) != 0], # writable
                 (), # except
-                0.01 # timeout
+                timeout # timeout
               )
             if to_child_text in writeable :
                 nrbytes = os.write(to_child_text.fileno(), input)
@@ -120,8 +120,11 @@ class PSMagics(magic.Magics) :
                     #end while
                 #end if
             #end for
-            if not did_something and proc_gs.poll() != None :
-                break
+            if not did_something :
+                if proc_gs.poll() != None :
+                    break
+                raise TimeoutError("Ghostscript is taking too long to respond")
+            #end if
         #end while
         from_child_binary.close()
         if proc_gs.returncode != 0 :
@@ -143,9 +146,10 @@ class PSMagics(magic.Magics) :
     @magicargs.magic_arguments()
     @magicargs.argument("--dpi", help = "output dpi, default = 72")
     @magicargs.argument("--format", help = "graphical output format, PNG or PDF, defaults to PNG")
-    @magicargs.argument("--text", help = "text output format, plain, markdown or HTML, defaults to plain")
     @magicargs.argument("--papersize", help = "paper size, e.g. a4")
       # see /usr/share/ghostscript/*/Resource/Init/gs_statd.ps for valid paper sizes
+    @magicargs.argument("--text", help = "text output format, plain, markdown or HTML, defaults to plain")
+    @magicargs.argument("--timeout", help = "how many seconds to wait for execution completion, defaults to infinite")
     def ps(self, line, cell) :
         "executes the cell contents as PostScript, and displays returned text or graphical output."
         args = magicargs.parse_argstring(PSMagics.ps, line)
@@ -161,9 +165,14 @@ class PSMagics(magic.Magics) :
         else :
             text_format = "plain"
         #end if
+        timeout = getattr(args, "timeout", None)
+        if timeout != None :
+            timeout = float(timeout)
+        #end if
         result_text, result_binary = self.run_gs \
           (
             input = cell,
+            timeout = timeout,
             graphics_format = {"png" : "png16m", "pdf" : "pdfwrite"}[graphics_format],
             pixel_density = getattr(args, "dpi", None),
             papersize = getattr(args, "papersize", None),
