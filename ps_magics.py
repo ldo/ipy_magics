@@ -123,6 +123,8 @@ class PSMagics(magic.Magics) :
             if not did_something :
                 if proc_gs.poll() != None :
                     break
+                proc_gs.terminate()
+                  # fixme: should also proc_gs.wait()
                 raise TimeoutError("Ghostscript is taking too long to respond")
             #end if
         #end while
