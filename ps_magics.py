@@ -147,7 +147,7 @@ class PSMagics(magic.Magics) :
     @magic.cell_magic
     @magicargs.magic_arguments()
     @magicargs.argument("--dpi", help = "output dpi, default = 72")
-    @magicargs.argument("--format", help = "graphical output format, PNG or PDF, defaults to PNG")
+    @magicargs.argument("--graphics", help = "graphical output format, PNG or PDF, defaults to PNG")
     @magicargs.argument("--papersize", help = "paper size, e.g. a4")
       # see /usr/share/ghostscript/*/Resource/Init/gs_statd.ps for valid paper sizes
     @magicargs.argument("--text", help = "text output format, plain, markdown or HTML, defaults to plain")
@@ -155,7 +155,7 @@ class PSMagics(magic.Magics) :
     def ps(self, line, cell) :
         "executes the cell contents as PostScript, and displays returned text or graphical output."
         args = magicargs.parse_argstring(PSMagics.ps, line)
-        graphics_format = getattr(args, "format", None)
+        graphics_format = getattr(args, "graphics", None)
         if graphics_format != None :
             graphics_format = graphics_format.lower()
         else :
