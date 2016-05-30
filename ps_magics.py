@@ -25,7 +25,7 @@ class PSMagics(magic.Magics) :
     " the output."
 
     @staticmethod
-    def run_gs(input, output_format, pixel_density = None, papersize = None) :
+    def run_gs(input, graphics_format, pixel_density = None, papersize = None) :
         # internal routine handling common part of Ghostscript invocation.
         if not isinstance(input, bytes) :
             input = input.encode()
@@ -42,7 +42,7 @@ class PSMagics(magic.Magics) :
             "gs", "-q", "-dBATCH", "-dNOPAUSE",
               # -dBATCH needed to turn off prompt (doc says -dNOPAUSE does this, but it
               # lies).
-            "-sDEVICE=%s" % output_format,
+            "-sDEVICE=%s" % graphics_format,
             "-sOutputFile=/dev/fd/%d" % to_parent_binary.fileno(),
               # separate channel from stdout for returning output graphics
           )
@@ -142,32 +142,44 @@ class PSMagics(magic.Magics) :
     @magic.cell_magic
     @magicargs.magic_arguments()
     @magicargs.argument("--dpi", help = "output dpi, default = 72")
-    @magicargs.argument("--format", help = "output format, PNG or PDF, defaults to PNG")
+    @magicargs.argument("--format", help = "graphical output format, PNG or PDF, defaults to PNG")
+    @magicargs.argument("--text", help = "text output format, plain, markdown or HTML, defaults to plain")
     @magicargs.argument("--papersize", help = "paper size, e.g. a4")
       # see /usr/share/ghostscript/*/Resource/Init/gs_statd.ps for valid paper sizes
     def ps(self, line, cell) :
         "executes the cell contents as PostScript, and displays returned text or graphical output."
         args = magicargs.parse_argstring(PSMagics.ps, line)
-        format = getattr(args, "format", None)
-        if format != None :
-            format = format.lower()
+        graphics_format = getattr(args, "format", None)
+        if graphics_format != None :
+            graphics_format = graphics_format.lower()
         else :
-            format = "png"
+            graphics_format = "png"
+        #end if
+        text_format = getattr(args, "text", None)
+        if text_format != None :
+            text_format = text_format.lower()
+        else :
+            text_format = "plain"
         #end if
         result_text, result_binary = self.run_gs \
           (
             input = cell,
-            output_format = {"png" : "png16m", "pdf" : "pdfwrite"}[format],
+            graphics_format = {"png" : "png16m", "pdf" : "pdfwrite"}[graphics_format],
             pixel_density = getattr(args, "dpi", None),
             papersize = getattr(args, "papersize", None),
           )
         if len(result_binary) != 0 :
-            {"png" : display_png, "pdf" : display_pdf}[format](result_binary, raw = True)
+            {"png" : display_png, "pdf" : display_pdf}[graphics_format](result_binary, raw = True)
         #end if
-        if len(result_text) == 0 :
-            result_text = None # don’t display empty string
+        if len(result_text) != 0 :
+            result_text = \
+                {
+                    "plain" : lambda t : t,
+                    "markdown" : lambda t : HTML(markdown(t)),
+                    "html" : lambda t : HTML(t),
+                }[text_format](result_text)
         else :
-            result_text = HTML(markdown(result_text))
+            result_text = None # don’t display empty string
         #end if
         return \
             result_text
