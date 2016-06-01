@@ -1,7 +1,10 @@
 #+
 # Cell magic for IPython that allow the inclusion of PostScript code.
-# The code can produce either textual or graphical output for display
-# in the notebook.
+# The code can produce either textual or graphical output, or both,
+# for display in the notebook.
+#
+# Copyright 2016 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
+# Licensed under CC-BY-SA <http://creativecommons.org/licenses/by-sa/4.0/>.
 #-
 
 import os
@@ -187,6 +190,10 @@ class PSMagic(magic.Magics) :
                 {
                     "plain" : lambda t : t,
                     "markdown" : lambda t : HTML(markdown(t)),
+                      # contrary to the docs
+                      # <http://ipython.readthedocs.io/en/stable/api/generated/IPython.display.html>,
+                      # IPython doesn’t provide a display_markdown call (at least not on Debian),
+                      # so I have to make my own
                     "html" : lambda t : HTML(t),
                 }[text_format](result_text)
         else :
