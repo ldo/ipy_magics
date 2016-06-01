@@ -1,0 +1,130 @@
+The enclosed Python 3 module defines a “cell magic” for use in an
+IPython notebook that uses the Ghostscript interpreter to execute
+PostScript code. Either copy and paste the file contents into a
+notebook cell, or use the standard IPython “%load” or “%run” magics,
+for example
+
+    %run /path/to/ps_magic.py
+
+to execute the file contents to define the magic in the notebook.
+You can check the magic has been correctly defined by displaying
+its built-in help in the usual way:
+
+    %%ps?
+
+Now you can type PostScript code into a cell. Just so long as the
+first line of the cell begins with “%%ps”, when you execute the cell,
+it will be passed to a new Ghostscript instance for execution.
+
+The PostScript code can return either or both textual and graphical
+output. Textual output is whatever is written to the standard output
+of the Ghostscript process by PostScript commands such as “=” and
+“print”, while graphical output is whatever is drawn on the page and
+presented using “showpage”. Whichever is generated will be displayed as
+the output(s) of the cell.
+
+Text output can be displayed as plain text, or formatted as HTML or
+Markdown. This can include mathematical formulae as is usual with
+formatted output in IPython. For example, this prints a table of
+likely candidates for valid physical formulas:
+
+    %%ps --text=html
+    /TempStr 31 string def
+    (<table>\n<tr><th colspan="2">Dimensional Analysis</th></tr>\n) print
+    1 1 3
+      {
+        (<tr><td>$E = mc) print
+        dup 1 ne
+            {(^) print dup TempStr cvs print}
+        if
+        ($</td><td>) print
+        2 eq
+            {(<b>Possible</b>)}
+            {(Rubbish)}
+        ifelse
+        print
+        (</td></tr>\n) print
+      }
+    for
+    (</table>\n) print
+
+Graphical output can be in either PNG (default) or PDF. PNG only
+allows for a single page, and is resolution-dependent. PDF allows for
+multiple pages (each “showpage” call you make produces a new page),
+and can be resolution-independent. For example, this prints two pies,
+segmented into RGB and CMYK primary colours:
+
+    %%ps --papersize=250x500
+    /explode % explodes an array or dictionary into its components.
+      {
+        {} forall
+      }
+    def % explode
+
+    /CMYK % array of procedures for trying each CMYK colour in turn
+      [
+          [
+            [1.0 0.0 0.0 0.0]
+            [0.0 1.0 0.0 0.0]
+            [0.0 0.0 1.0 0.0]
+            [0.0 0.0 0.0 1.0]
+          ]
+          { % forall
+            explode /setcmykcolor load
+            5 array astore cvx
+          }
+        forall
+      ]
+    def % CMYK
+
+    /RGB % array of procedures for trying each RGB colour in turn.
+      [
+          [
+            [1.0 0.0 0.0]
+            [0.0 1.0 0.0]
+            [0.0 0.0 1.0]
+          ]
+          { % forall
+            explode /setrgbcolor load
+            4 array astore cvx
+          }
+        forall
+      ]
+    def % RGB
+
+    /PieSegments % x y r Colors PieSegments --
+      {
+        LocalDict % placeholder for local dictionary
+        begin
+        /Colors exch def
+        /Radius exch def
+        /YCenter exch def
+        /XCenter exch def
+        /NrColors Colors length def
+        /AngleStep 360 NrColors div def
+        /CurAngle -15 def
+        /Index 0 def
+          { % loop
+            Index NrColors eq {exit} if
+            Colors Index get exec
+            newpath
+            XCenter YCenter moveto
+            XCenter YCenter Radius CurAngle dup AngleStep add arc
+            XCenter YCenter lineto
+            fill
+            /CurAngle CurAngle AngleStep add def
+            /Index Index 1 add def
+          }
+        loop
+        end % LocalDict
+      }
+    dup 0 10 dict put % create and insert LocalDict
+    def % PieSegments
+
+    120 120 100 CMYK PieSegments
+    120 370 100 RGB PieSegments
+
+    showpage
+
+Lawrence D'Oliveiro <ldo@geek-central.gen.nz>
+2016 June 1
