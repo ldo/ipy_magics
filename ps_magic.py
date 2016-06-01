@@ -210,7 +210,7 @@ class PSMagic(magic.Magics) :
                       # <http://ipython.readthedocs.io/en/stable/api/generated/IPython.display.html>,
                       # IPython doesn’t provide a display_markdown call (at least not on Debian),
                       # so I have to make my own
-                    "html" : lambda t : HTML(t),
+                    "html" : HTML,
                 }[text_format](result_text)
         else :
             result_text = None # don’t display empty string
