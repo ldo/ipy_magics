@@ -205,7 +205,7 @@ class PSMagic(magic.Magics) :
             result_text = \
                 {
                     "plain" : lambda t : t,
-                    "markdown" : lambda t : HTML(markdown(t)),
+                    "markdown" : lambda t : HTML(markdown(t, extensions = ["tables"])),
                       # contrary to the docs
                       # <http://ipython.readthedocs.io/en/stable/api/generated/IPython.display.html>,
                       # IPython doesn’t provide a display_markdown call (at least not on Debian),
