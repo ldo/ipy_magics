@@ -11,6 +11,7 @@ import os
 import subprocess
 import select
 import fcntl
+import re
 from markdown import \
     markdown # from separate python3-markdown package
 from IPython.display import \
@@ -49,6 +50,7 @@ class PSMagic(magic.Magics) :
             "-sOutputFile=/dev/fd/%d" % to_parent_binary.fileno(),
               # separate channel from stdout for returning output graphics
           )
+        prelude = ""
         if pixel_density != None :
             args += \
                 (
@@ -58,7 +60,20 @@ class PSMagic(magic.Magics) :
                 )
         #end if
         if papersize != None :
-            args += ("-sPAPERSIZE=%s" % papersize,)
+            dimensions_match = re.match(r"^(\d+)[x×\:](\d+)$", papersize)
+            if dimensions_match != None :
+                prelude += \
+                    (
+                        "<</PageSize [%(width)u %(height)u] /ImagingBBox null>> setpagedevice\n"
+                    %
+                        {
+                            "width" : float(dimensions_match.group(1)),
+                            "height" : float(dimensions_match.group(2)),
+                        }
+                    )
+            else :
+                args += ("-sPAPERSIZE=%s" % papersize,)
+            #end if
         #end if
         proc_gs = subprocess.Popen \
           (
@@ -83,6 +98,7 @@ class PSMagic(magic.Magics) :
         from_child_text = proc_gs.stdout
         output = {"text" : b"", "binary" : b""}
         to_read = 1024 # arbitrary
+        input = prelude.encode() + input
         if len(input) == 0 :
             to_child_text.close()
         #end if
@@ -151,8 +167,8 @@ class PSMagic(magic.Magics) :
     @magicargs.magic_arguments()
     @magicargs.argument("--dpi", help = "output dpi, default = 72")
     @magicargs.argument("--graphics", help = "graphical output format, PNG or PDF, defaults to PNG")
-    @magicargs.argument("--papersize", help = "paper size, e.g. a4")
-      # see /usr/share/ghostscript/*/Resource/Init/gs_statd.ps for valid paper sizes
+    @magicargs.argument("--papersize", help = "paper size, e.g. “a4” or «width»x«height»")
+      # see /usr/share/ghostscript/*/Resource/Init/gs_statd.ps for valid predefined paper sizes
     @magicargs.argument("--text", help = "text output format, plain, markdown or HTML, defaults to plain")
     @magicargs.argument("--timeout", help = "how many seconds to wait for execution completion, defaults to infinite")
     def ps(self, line, cell) :
