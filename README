@@ -1,7 +1,7 @@
 The enclosed Python 3 module defines a “cell magic” for use in an
-IPython notebook that uses the Ghostscript interpreter to execute
-PostScript code. Either copy and paste the file contents into a
-notebook cell, or use the standard IPython “%load” or “%run” magics,
+IPython/Jupyter notebook that uses the Ghostscript interpreter to
+execute PostScript code. Either copy and paste the file contents into
+a notebook cell, or use the standard IPython “%load” or “%run” magics,
 for example
 
     %run /path/to/ps_magic.py
@@ -15,6 +15,10 @@ its built-in help in the usual way:
 Now you can type PostScript code into a cell. Just so long as the
 first line of the cell begins with “%%ps”, when you execute the cell,
 it will be passed to a new Ghostscript instance for execution.
+
+Note that, unlike a custom Jupyter kernel, there is no context
+preserved across multiple cells; the PostScript code in each cell
+must be self-contained.
 
 The PostScript code can return either or both textual and graphical
 output. Textual output is whatever is written to the standard output
