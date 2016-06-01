@@ -1,5 +1,5 @@
 #+
-# Cell magics for IPython that allow the inclusion of PostScript code.
+# Cell magic for IPython that allow the inclusion of PostScript code.
 # The code can produce either textual or graphical output for display
 # in the notebook.
 #-
@@ -20,7 +20,7 @@ import IPython.core.magic_arguments as \
     magicargs
 
 @magic.magics_class
-class PSMagics(magic.Magics) :
+class PSMagic(magic.Magics) :
     "defines cell magic for executing PostScript code using Ghostscript and displaying" \
     " the output."
 
@@ -154,7 +154,7 @@ class PSMagics(magic.Magics) :
     @magicargs.argument("--timeout", help = "how many seconds to wait for execution completion, defaults to infinite")
     def ps(self, line, cell) :
         "executes the cell contents as PostScript, and displays returned text or graphical output."
-        args = magicargs.parse_argstring(PSMagics.ps, line)
+        args = magicargs.parse_argstring(PSMagic.ps, line)
         graphics_format = getattr(args, "graphics", None)
         if graphics_format != None :
             graphics_format = graphics_format.lower()
@@ -196,8 +196,8 @@ class PSMagics(magic.Magics) :
             result_text
     #end ps
 
-#end PSMagics
+#end PSMagic
 
 if __name__ == "__main__" :
-    get_ipython().register_magics(PSMagics)
+    get_ipython().register_magics(PSMagic)
 #end if
