@@ -43,9 +43,7 @@ class PSMagic(magic.Magics) :
         to_parent_binary = open(to_parent_binary, "wb", buffering = 0)
         args = \
           (
-            "gs", "-q", "-dBATCH", "-dNOPAUSE",
-              # -dBATCH needed to turn off prompt (doc says -dNOPAUSE does this, but it
-              # lies).
+            "gs", "-q", "-dBATCH", "-dNOPROMPT",
             "-sDEVICE=%s" % graphics_format,
             "-sOutputFile=/dev/fd/%d" % to_parent_binary.fileno(),
               # separate channel from stdout for returning output graphics
