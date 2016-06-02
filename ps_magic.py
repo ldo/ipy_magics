@@ -147,6 +147,9 @@ class PSMagic(magic.Magics) :
         #end while
         from_child_binary.close()
         if proc_gs.returncode != 0 :
+            proc_gs.kill()
+            proc_gs.stdout.close() # doesn’t happen by default, for some reason
+            proc_gs.stdin.close() # might as well, just in case
             if False :
                 raise subprocess.CalledProcessError(cmd = "gs", returncode = proc_gs.returncode)
             else :
