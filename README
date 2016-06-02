@@ -51,6 +51,7 @@ likely candidates for valid physical formulas:
       }
     for
     (</table>\n) print
+    flush
 
 Graphical output can be in either PNG (default) or PDF. PNG only
 allows for a single page, and is resolution-dependent. PDF allows for
