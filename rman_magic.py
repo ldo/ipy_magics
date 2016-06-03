@@ -17,6 +17,8 @@ from IPython.core import \
     magic
 import IPython.core.magic_arguments as \
     magicargs
+from IPython.utils.warn import \
+    warn
 
 @magic.magics_class
 class RManMagic(magic.Magics) :
@@ -140,8 +142,11 @@ class RManMagic(magic.Magics) :
                         open_ribfile()
                     #end if
                     if display_pat.match(line) != None :
-                        raise SyntaxError("“display” directive not allowed", ("<cell input>", linenr, None, None))
+                        warn("“display” directive ignored at line %d" % linenr)
+                        line = None
                     #end if
+                #end if
+                if line != None :
                     outfile.write(line)
                     outfile.write("\n")
                 #end if
