@@ -6,6 +6,7 @@
 # Licensed under CC-BY-SA <http://creativecommons.org/licenses/by-sa/4.0/>.
 #-
 
+import enum
 import os
 import re
 import subprocess
@@ -17,8 +18,6 @@ from IPython.core import \
     magic
 import IPython.core.magic_arguments as \
     magicargs
-from IPython.utils.warn import \
-    warn
 
 @magic.magics_class
 class RManMagic(magic.Magics) :
@@ -28,21 +27,47 @@ class RManMagic(magic.Magics) :
     @staticmethod
     def run_aqsis(input, timeout = None, debug = False) :
 
-        outfile = None
-        did_ribfile = False
-        was_shader_file = False
+        linenr = None
+        line = None
+        work_dir = None
 
-        def open_ribfile() :
-            nonlocal outfile, did_ribfile
-            assert outfile == None
-            if did_ribfile :
-                raise RuntimeError("all .rib output must be together")
-            #end if
-            outfile = open(ribfile_name, "w")
-            outfile.write("Display \"%(outfile)s\" \"file\" \"rgba\"\n" % {"outfile" : imgfile_name})
-            was_shader_file = False
-            did_ribfile = True
-        #end open_ribfile
+        @enum.unique
+        class FILE_TYPE(enum.Enum) :
+            RIB = 1
+            SHADER = 2
+        #end FILE_TYPE
+
+        def syntax_error(reason) :
+            raise SyntaxError(reason, ("<cell input>", linenr, None, line))
+        #end syntax_error
+
+        def compile_rib(filename) :
+            aqsis_output = subprocess.check_output \
+              (
+                args = ("aqsis", filename),
+                stdin = subprocess.DEVNULL,
+                stderr = subprocess.STDOUT,
+                universal_newlines = True,
+                cwd = work_dir,
+                timeout = timeout
+              )
+            print(aqsis_output) # debug
+        #end compile_rib
+
+        def compile_shader(filename) :
+            subprocess.check_call \
+              (
+                args = ("aqsl", filename),
+                cwd = work_dir,
+                timeout = timeout
+              )
+        #end compile_shader
+
+        outfile_actions = \
+            {
+                FILE_TYPE.RIB : compile_rib,
+                FILE_TYPE.SHADER : compile_shader,
+            }
 
     #begin run_aqsis
         png_data = None # to begin with
@@ -52,11 +77,14 @@ class RManMagic(magic.Magics) :
             work_dir = os.path.join(temp_dir, "work")
             os.mkdir(work_dir)
               # separate subdirectory for files created by caller
-            ribfile_name = os.path.join(temp_dir, "in.rib")
+            ribfile_nr = 0
             imgfile_name = os.path.join(temp_dir, "out.tif")
               # pity Aqsis cannot generate PNG directly...
+            outfile = None
+            outfile_name = None
+            outfile_type = None
+            did_final_output = False
             submagic_pat = re.compile(r"^\%(\w+)(?:\s+(.+))?$")
-            display_pat = re.compile(r"^\s*display\s*[\"\s]", flags = re.IGNORECASE)
             params_pat = re.compile(r"\s+")
             input_line = iter(input.split("\n"))
             include_stack = []
@@ -78,7 +106,7 @@ class RManMagic(magic.Magics) :
                     if line != None :
                         parse = submagic_pat.match(line)
                         if parse == None or len(parse.groups()) != 2 :
-                            raise SyntaxError("bad directive line", ("<cell input>", linenr, None, line))
+                            syntax_error("bad directive line")
                         #end if
                         directive, line_rest = parse.groups()
                         if line_rest != None :
@@ -89,77 +117,81 @@ class RManMagic(magic.Magics) :
                     else :
                         directive = None
                     #end if
-                    if directive == "include" :
+                    replace_line = None # initial assumption
+                    if directive == "display" :
+                        if did_final_output :
+                            syntax_error("only one %display directive allowed")
+                        #end if
+                        if outfile != None and outfile_type != FILE_TYPE.RIB :
+                            syntax_error("%display must be in %rib file")
+                        #end if
+                        replace_line = \
+                            (
+                                "Display \"%(outfile)s\" \"file\" \"rgba\""
+                            %
+                                {"outfile" : imgfile_name}
+                            )
+                        did_final_output = True
+                    elif directive == "include" :
                         if len(line_rest) != 1 :
-                            raise SyntaxError("wrong nr args for “include” directive", ("<cell input>", linenr, None, None))
+                            syntax_error("wrong nr args for “include” directive")
                         #end if
                         include_stack.append(input_line)
                         input_line = iter(open(line_rest[0], "r").read().split("\n"))
                     elif directive in (None, "rib", "sl") :
                         if outfile != None :
                             outfile.close()
-                        #end if
-                        outfile = None
-                        if was_shader_file :
-                            # compile shader
-                            subprocess.check_call \
-                              (
-                                args = ("aqsl", shader_filename),
-                                cwd = work_dir,
-                                timeout = timeout
-                              )
+                            outfile = None
+                            outfile_actions[outfile_type](outfile_name)
                         #end if
                         if line == None :
                             break
                         if directive == "rib" :
                             if len(line_rest) != 0 :
-                                raise SyntaxError("unexpected args for “rib” directive", ("<cell input>", linenr, None, None))
+                                syntax_error("unexpected args for “rib” directive")
                             #end if
-                            open_ribfile()
+                            if did_final_output :
+                                syntax_error("no ribs allowed after rib that used “%display”")
+                            #end if
+                            ribfile_nr += 1
+                            outfile_name = os.path.join(temp_dir, "in%03d.rib" % ribfile_nr)
+                            outfile = open(outfile_name, "w")
+                            outfile_type = FILE_TYPE.RIB
                         elif directive == "sl" :
                             if len(line_rest) != 1 :
-                                raise SyntaxError("wrong nr args for “sl” directive", ("<cell input>", linenr, None, None))
+                                syntax_error("wrong nr args for “sl” directive")
                             #end if
                             shader_filename = line_rest[0]
                             if "/" in shader_filename :
-                                raise SyntaxError("no slashes allowed in “sl” pathname", ("<cell input>", linenr, None, None))
+                                syntax_error("no slashes allowed in “sl” pathname")
                             #end if
                             shader_filename += ".sl"
-                            outfilename = os.path.join(work_dir, shader_filename)
-                            if os.path.exists(outfilename) :
-                                raise RuntimeError("shader file “%s” already exists" % shader_filename)
+                            outfile_name = os.path.join(work_dir, shader_filename)
+                            if os.path.exists(outfile_name) :
+                                syntax_error("shader file “%s” already exists" % shader_filename)
                             #end if
-                            outfile = open(outfilename, "w")
-                            was_shader_file = True
+                            outfile = open(outfile_name, "w")
+                            outfile_type = FILE_TYPE.SHADER
                         #end if
                     else :
-                        raise NameError("unrecognized submagic directive “%s”" % directive)
+                        syntax_error("unrecognized submagic directive “%s”" % directive)
                     #end if
-                    line = None # already processed
+                    line = replace_line # already processed
                 #end if
                 if line != None :
                     if outfile == None :
-                        open_ribfile()
+                        ribfile_nr += 1
+                        outfile_name = os.path.join(temp_dir, "in%03d.rib" % ribfile_nr)
+                        outfile = open(outfile_name, "w")
+                        outfile_type = FILE_TYPE.RIB
                     #end if
-                    if display_pat.match(line) != None :
-                        warn("“display” directive ignored at line %d" % linenr)
-                        line = None
-                    #end if
-                #end if
-                if line != None :
                     outfile.write(line)
                     outfile.write("\n")
                 #end if
             #end while
-            aqsis_output = subprocess.check_output \
-              (
-                args = ("aqsis", ribfile_name),
-                stdin = subprocess.DEVNULL,
-                stderr = subprocess.STDOUT,
-                universal_newlines = True,
-                cwd = work_dir,
-                timeout = timeout
-              )
+            if not did_final_output :
+                syntax_error("never saw %display directive, no final output produced")
+            #end if
             png_data = subprocess.check_output \
               (
                 args = ("convert", imgfile_name, "png:/dev/stdout"),
