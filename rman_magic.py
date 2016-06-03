@@ -6,7 +6,6 @@
 # Licensed under CC-BY-SA <http://creativecommons.org/licenses/by-sa/4.0/>.
 #-
 
-import sys # debug
 import os
 import re
 import subprocess
@@ -25,7 +24,7 @@ class RManMagic(magic.Magics) :
     " the output."
 
     @staticmethod
-    def run_aqsis(input, timeout = None) :
+    def run_aqsis(input, timeout = None, debug = False) :
 
         outfile = None
         did_ribfile = False
@@ -47,14 +46,10 @@ class RManMagic(magic.Magics) :
         png_data = None # to begin with
         temp_dir = tempfile.mkdtemp(prefix = "rman-magic-")
         try :
-            keep_temps = True # debug
-            if True :
-                work_dir = os.path.join(temp_dir, "work")
-                os.mkdir(work_dir)
-                  # separate subdirectory for files created by caller
-            else :
-                work_dir = temp_dir # Aqsis can’t find shaders otherwise?
-            #end if
+            keep_temps = debug
+            work_dir = os.path.join(temp_dir, "work")
+            os.mkdir(work_dir)
+              # separate subdirectory for files created by caller
             ribfile_name = os.path.join(temp_dir, "in.rib")
             imgfile_name = os.path.join(temp_dir, "out.tif")
               # pity Aqsis cannot generate PNG directly...
@@ -89,7 +84,6 @@ class RManMagic(magic.Magics) :
                         else :
                             line_rest = []
                         #end if
-                        sys.stderr.write("submagic directive = %s, args = %s\n" % (repr(directive), repr(line_rest))) # debug
                     else :
                         directive = None
                     #end if
@@ -186,6 +180,7 @@ class RManMagic(magic.Magics) :
 
     @magic.cell_magic
     @magicargs.magic_arguments()
+    @magicargs.argument("--debug", help = "whether to keep temp files for debugging (default is false)")
     @magicargs.argument("--timeout", help = "how many seconds to wait for execution completion, defaults to infinite")
     def rman(self, line, cell) :
         "executes the cell contents as RenderMan, and displays returned graphical output."
@@ -194,7 +189,8 @@ class RManMagic(magic.Magics) :
         if timeout != None :
             timeout = float(timeout)
         #end if
-        image = self.run_aqsis(input = cell, timeout = timeout)
+        debug = getattr(args, "debug", "")[0] in "yYtT1"
+        image = self.run_aqsis(input = cell, timeout = timeout, debug = debug)
         result = None
         if len(image) != 0 :
             display_png(image, raw = True)
