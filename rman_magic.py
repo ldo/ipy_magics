@@ -189,7 +189,12 @@ class RManMagic(magic.Magics) :
         if timeout != None :
             timeout = float(timeout)
         #end if
-        debug = getattr(args, "debug", "")[0] in "yYtT1"
+        debug = getattr(args, "debug", None)
+        if debug != None :
+            debug = debug[0] in "yYtT1"
+        else :
+            debug = False
+        #end if
         image = self.run_aqsis(input = cell, timeout = timeout, debug = debug)
         result = None
         if len(image) != 0 :
