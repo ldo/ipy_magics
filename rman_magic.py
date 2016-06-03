@@ -9,8 +9,6 @@
 import sys # debug
 import os
 import subprocess
-import select
-import fcntl
 import tempfile
 import shutil
 from IPython.display import \
