@@ -13,12 +13,11 @@ import subprocess
 import tempfile
 import shutil
 import shlex
+import getopt
 from IPython.display import \
     display_png
 from IPython.core import \
     magic
-import IPython.core.magic_arguments as \
-    magicargs
 
 @magic.magics_class
 class RManMagic(magic.Magics) :
@@ -228,22 +227,34 @@ class RManMagic(magic.Magics) :
     #“cell” is the rest of the cell contents.
 
     @magic.cell_magic
-    @magicargs.magic_arguments()
-    @magicargs.argument("--debug", help = "whether to keep temp files for debugging (default is false)")
-    @magicargs.argument("--timeout", help = "how many seconds to wait for execution completion, defaults to infinite")
     def rman(self, line, cell) :
-        "executes the cell contents as RenderMan, and displays returned graphical output."
-        args = magicargs.parse_argstring(RManMagic.rman, line)
-        timeout = getattr(args, "timeout", None)
-        if timeout != None :
-            timeout = float(timeout)
+        "executes the cell contents as RenderMan, and displays returned graphical output." \
+        "Usage:\n" \
+        "\n" \
+        "    %%rman [--debug] [--timeout=«timeout»]\n" \
+        "\n" \
+        "where\n" \
+        "    --debug keeps temp files for debugging\n" \
+        "    --timeout=«timeout» specifies how many seconds to wait for" \
+        "    subprocesses to respond (default is infinite)"
+        timeout = None
+        debug = False
+        opts, args = getopt.getopt \
+          (
+            shlex.split(line),
+            "",
+            ("debug", "timeout=",)
+          )
+        if len(args) != 0 :
+            raise getopt.GetoptError("unexpected args")
         #end if
-        debug = getattr(args, "debug", None)
-        if debug != None :
-            debug = debug[0] in "yYtT1"
-        else :
-            debug = False
-        #end if
+        for keyword, value in opts :
+            if keyword == "--debug" :
+                debug = True
+            elif keyword == "--timeout" :
+                timeout = float(value)
+            #end if
+        #end for
         image = self.run_aqsis(input = cell, timeout = timeout, debug = debug)
         result = None
         if len(image) != 0 :
