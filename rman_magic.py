@@ -148,9 +148,17 @@ class RManMagic(magic.Magics) :
                             syntax_error("wrong nr args for “include” directive")
                         #end if
                         file_arg = line_rest[0]
-                        try_path = [file_arg]
                         if not file_arg.startswith("/") and include_search != None :
-                            try_path.append(os.path.join(include_search, file_arg))
+                            try_path = []
+                            for try_dir in include_search.split(":") :
+                                if try_dir == "&" :
+                                    try_path.append(file_arg)
+                                else :
+                                    try_path.append(os.path.join(try_dir, file_arg))
+                                #end if
+                            #end for
+                        else :
+                            try_path = [file_arg]
                         #end if
                         while True :
                             if len(try_path) == 0 :
@@ -260,9 +268,10 @@ class RManMagic(magic.Magics) :
         "where valid options are\n" \
         "    --archive-search=«dir» optional directory to search for .rib files\n" \
         "    --debug keeps temp files for debugging\n" \
-        "    --include-search=«dir» optional directory to search for %include files\n" \
-        "    --shader-search=«dir» optional directory to search for .sl files\n" \
-        "    --texture-search=«dir» optional directory to search for texture files\n" \
+        "    --include-search=«dir» optional directories to search for %include files\n" \
+        "    --search=«dir» optional directories to search for all files\n" \
+        "    --shader-search=«dir» optional directories to search for .sl files\n" \
+        "    --texture-search=«dir» optional directories to search for texture files\n" \
         "    --timeout=«timeout» specifies how many seconds to wait for" \
             " subprocesses to respond (default is infinite)\n" \
         "    --verbose=«verbosity» verbosity level 0-3, default is 1"
@@ -272,7 +281,9 @@ class RManMagic(magic.Magics) :
         map_aqsis_opts = \
             {
                 "archive-search" : ("archives", True),
+              # I don’t think I need “displays”
                 "shader-search" : ("shaders", True),
+                "procedural-search" : ("procedurals", True),
                 "texture-search" : ("textures", True),
                 "progress" : ("Progress", False),
                 "verbose" : ("verbose", True),
@@ -281,7 +292,7 @@ class RManMagic(magic.Magics) :
           (
             shlex.split(line),
             "",
-                ("debug", "include-search=", "timeout=",)
+                ("debug", "include-search=", "search=", "timeout=",)
             +
                 tuple(k + ("", "=")[map_aqsis_opts[k][1]] for k in map_aqsis_opts)
           )
@@ -294,6 +305,11 @@ class RManMagic(magic.Magics) :
                 debug = True
             elif keyword == "--include-search" :
                 include_search = value
+            elif keyword == "--search" :
+                include_search = value
+                for k in ("archives", "shaders", "procedurals", "textures") :
+                    aqsis_opts.append((k, value))
+                #end for
             elif keyword == "--timeout" :
                 timeout = float(value)
             elif keyword.startswith("--") and keyword[2:] in map_aqsis_opts :
