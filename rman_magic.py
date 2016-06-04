@@ -1,5 +1,5 @@
 #+
-# Cell magic for IPython that allow the inclusion of RenderMan code.
+# Cell magic for IPython that allows the inclusion of RenderMan code.
 # The graphical rendered output will be displayed in the notebook.
 #
 # Copyright 2016 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.

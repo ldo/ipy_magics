@@ -1,5 +1,5 @@
 #+
-# Cell magic for IPython that allow the inclusion of PostScript code.
+# Cell magic for IPython that allows the inclusion of PostScript code.
 # The code can produce either textual or graphical output, or both,
 # for display in the notebook.
 #
