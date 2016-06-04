@@ -25,7 +25,7 @@ class RManMagic(magic.Magics) :
     " the output."
 
     @staticmethod
-    def run_aqsis(input, timeout = None, debug = False) :
+    def run_aqsis(input, timeout = None, debug = False, include_search = None, aqsis_opts = None) :
 
         linenr = None
         line = None
@@ -42,9 +42,15 @@ class RManMagic(magic.Magics) :
         #end syntax_error
 
         def compile_rib(filename) :
+            extra = []
+            if aqsis_opts != None :
+                for keyword, value in aqsis_opts :
+                    extra.append("-%s=%s" % (keyword, value))
+                #end for
+            #end if
             aqsis_output = subprocess.check_output \
               (
-                args = ("aqsis", filename),
+                args = ["aqsis"] + extra + [filename],
                 stdin = subprocess.DEVNULL,
                 stderr = subprocess.STDOUT,
                 universal_newlines = True,
@@ -137,8 +143,22 @@ class RManMagic(magic.Magics) :
                         if len(line_rest) != 1 :
                             syntax_error("wrong nr args for “include” directive")
                         #end if
-                        include_stack.append(input_line)
-                        input_line = iter(open(line_rest[0], "r").read().split("\n"))
+                        file_arg = line_rest[0]
+                        try_path = [file_arg]
+                        if not file_arg.startswith("/") and include_search != None :
+                            try_path.append(os.path.join(include_search, file_arg))
+                        #end if
+                        while True :
+                            if len(try_path) == 0 :
+                                syntax_error("cannot find %include file")
+                            #end if
+                            file_arg = try_path.pop(0)
+                            if os.path.isfile(file_arg) :
+                                include_stack.append(input_line)
+                                input_line = iter(open(file_arg, "r").read().split("\n"))
+                                break
+                            #end if
+                        #end while
                     elif directive in (None, "rib", "sl") :
                         if outfile != None :
                             outfile.close()
@@ -231,19 +251,21 @@ class RManMagic(magic.Magics) :
         "executes the cell contents as RenderMan, and displays returned graphical output." \
         "Usage:\n" \
         "\n" \
-        "    %%rman [--debug] [--timeout=«timeout»]\n" \
+        "    %%rman [--debug] [--include-search=«dir»] [--timeout=«timeout»]\n" \
         "\n" \
         "where\n" \
         "    --debug keeps temp files for debugging\n" \
+        "    --include-search=«dir» optional directory to search for include files\n" \
         "    --timeout=«timeout» specifies how many seconds to wait for" \
         "    subprocesses to respond (default is infinite)"
         timeout = None
         debug = False
+        include_search = None
         opts, args = getopt.getopt \
           (
             shlex.split(line),
             "",
-            ("debug", "timeout=",)
+            ("debug", "include-search=", "timeout=",)
           )
         if len(args) != 0 :
             raise getopt.GetoptError("unexpected args")
@@ -251,11 +273,20 @@ class RManMagic(magic.Magics) :
         for keyword, value in opts :
             if keyword == "--debug" :
                 debug = True
+            elif keyword == "--include-search" :
+                include_search = value
             elif keyword == "--timeout" :
                 timeout = float(value)
             #end if
         #end for
-        image = self.run_aqsis(input = cell, timeout = timeout, debug = debug)
+        image = self.run_aqsis \
+          (
+            input = cell,
+            timeout = timeout,
+            debug = debug,
+            include_search = include_search,
+            aqsis_opts = None # TBD list of keyword,value pairs
+          )
         result = None
         if len(image) != 0 :
             display_png(image, raw = True)
