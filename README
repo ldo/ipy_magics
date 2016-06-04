@@ -12,21 +12,23 @@ examining its help string in the usual way, e.g.
 
     %%ps?
 
-## setvar_magic ##
+## Variable-Setting Magic ##
 
-The `%%setvar` magic lets you hold a lot of text in a notebook cell
-and easily assign it to a Python variable for subsequent manipulation.
-The text can be assigned as a single string, or split into a list of
-lines.
+The `%%setvar` magic (defined in the file `setvar_magic.py`) lets you
+hold a lot of text in a notebook cell and easily assign it to a Python
+variable for subsequent manipulation. The text can be assigned as a
+single string, or split into a list of lines.
 
-## ps_magic ##
+## PostScript Magic ##
 
-The `%%ps` magic uses the Ghostscript interpreter to execute
-PostScript code. Type your PostScript code into a cell, and put “%%ps”
-as the first line. When you execute the cell, a new process will be
-created running the Ghostscript interpreter, which will be fed the
-cell contents for interpretation. Any text or graphics (or both) it
-generates will be displayed in the notebook as the output of the cell.
+The `%%ps` magic (defined in the file `ps_magic.py`) uses the
+[Ghostscript](http://www.ghostscript.com/) interpreter to execute
+PostScript code. Type your PostScript code into a cell, and put
+“`%%ps`” as the first line. When you execute the cell, a new process
+will be created running the Ghostscript interpreter, which will be fed
+the cell contents for interpretation. Any text or graphics (or both)
+it generates will be displayed in the notebook as the output of the
+cell.
 
 Note that, unlike a custom Jupyter kernel, there is no context
 preserved across multiple cells; the PostScript code in each cell must
@@ -66,8 +68,13 @@ likely candidates for valid physical formulas:
 Graphical output can be in either PNG (default) or PDF. PNG only
 allows for a single page, and is resolution-dependent. PDF allows for
 multiple pages (each “`showpage`” call you make produces a new page),
-and can be resolution-independent. For example, this prints two pies,
-segmented into RGB and CMYK primary colours:
+and can be resolution-independent. The paper size can be specified
+using standard names like “`a4`”, or a custom size can be defined
+as “*w*`×`*h*”, where *w* and *h* are the width and height in points
+(1 point = 1/72 inch or 1/28.35 cm).
+
+For example, this prints two pies, segmented into RGB and CMYK primary
+colours:
 
     %%ps --papersize=250x500
     /explode % explodes an array or dictionary into its components.
@@ -140,6 +147,24 @@ segmented into RGB and CMYK primary colours:
     120 370 100 RGB PieSegments
 
     showpage
+
+## RenderMan Magic ##
+
+The `%%rman` magic (defined in the file `rman_magic.py`) uses
+[Aqsis](http://www.aqsis.org/index.html) to render a 3D scene defined
+using the Pixar RenderMan language. Scene definition will often be
+quite complex, involving multiple files. For example, shader
+definitions must be in separate `.sl` files, and a render defined in
+one `.rib` file may have its output used as a texture in a later
+render.
+
+To cope with all of this, the `%%rman` magic recognizes a set of
+“submagics”—effectively its own set of IPython-style “line magics”,
+identified by lines beginning with a single “`%`” sign. These are used
+to divide the cell contents into parts that are to be interpreted as
+though they are held in separate Aqsis input files. It is also
+possible to reference external files, where it might not be practical
+to include the contents of these in a notebook cell.
 
 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>
 2016 June 4
