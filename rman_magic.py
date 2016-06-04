@@ -12,6 +12,7 @@ import re
 import subprocess
 import tempfile
 import shutil
+import shlex
 from IPython.display import \
     display_png
 from IPython.core import \
@@ -85,6 +86,7 @@ class RManMagic(magic.Magics) :
             outfile_type = None
             did_final_output = False
             submagic_pat = re.compile(r"^\%(\w+)(?:\s+(.+))?$")
+            display_pat = re.compile(r"^\s*display\s*(.+)$", flags = re.IGNORECASE)
             params_pat = re.compile(r"\s+")
             input_line = iter(input.split("\n"))
             include_stack = []
@@ -177,6 +179,16 @@ class RManMagic(magic.Magics) :
                         syntax_error("unrecognized submagic directive “%s”" % directive)
                     #end if
                     line = replace_line # already processed
+                #end if
+                if line != None :
+                    display_match = display_pat.match(line)
+                    if display_match != None :
+                        display_parms = shlex.split(display_match.group(1))
+                        if len(display_parms) > 2 and display_parms[1].lower() == "framebuffer" :
+                            # fixme: perhaps display this image as cell output as well?
+                            line = None
+                        #end if
+                    #end if
                 #end if
                 if line != None :
                     if outfile == None :
