@@ -45,7 +45,11 @@ class RManMagic(magic.Magics) :
             extra = []
             if aqsis_opts != None :
                 for keyword, value in aqsis_opts :
-                    extra.append("-%s=%s" % (keyword, value))
+                    if value != None :
+                        extra.append("-%s=%s" % (keyword, value))
+                    else :
+                        extra.append("-%s" % keyword)
+                    #end if
                 #end for
             #end if
             aqsis_output = subprocess.check_output \
@@ -251,25 +255,40 @@ class RManMagic(magic.Magics) :
         "executes the cell contents as RenderMan, and displays returned graphical output." \
         "Usage:\n" \
         "\n" \
-        "    %%rman [--debug] [--include-search=«dir»] [--timeout=«timeout»]\n" \
+        "    %%rman «options...»\n" \
         "\n" \
-        "where\n" \
+        "where valid options are\n" \
+        "    --archive-search=«dir» optional directory to search for .rib files\n" \
         "    --debug keeps temp files for debugging\n" \
-        "    --include-search=«dir» optional directory to search for include files\n" \
+        "    --include-search=«dir» optional directory to search for %include files\n" \
+        "    --shader-search=«dir» optional directory to search for .sl files\n" \
+        "    --texture-search=«dir» optional directory to search for texture files\n" \
         "    --timeout=«timeout» specifies how many seconds to wait for" \
-        "    subprocesses to respond (default is infinite)"
+            " subprocesses to respond (default is infinite)\n" \
+        "    --verbose=«verbosity» verbosity level 0-3, default is 1"
         timeout = None
         debug = False
         include_search = None
+        map_aqsis_opts = \
+            {
+                "archive-search" : ("archives", True),
+                "shader-search" : ("shaders", True),
+                "texture-search" : ("textures", True),
+                "progress" : ("Progress", False),
+                "verbose" : ("verbose", True),
+            }
         opts, args = getopt.getopt \
           (
             shlex.split(line),
             "",
-            ("debug", "include-search=", "timeout=",)
+                ("debug", "include-search=", "timeout=",)
+            +
+                tuple(k + ("", "=")[map_aqsis_opts[k][1]] for k in map_aqsis_opts)
           )
         if len(args) != 0 :
             raise getopt.GetoptError("unexpected args")
         #end if
+        aqsis_opts = []
         for keyword, value in opts :
             if keyword == "--debug" :
                 debug = True
@@ -277,6 +296,9 @@ class RManMagic(magic.Magics) :
                 include_search = value
             elif keyword == "--timeout" :
                 timeout = float(value)
+            elif keyword.startswith("--") and keyword[2:] in map_aqsis_opts :
+                mapname, has_value = map_aqsis_opts[keyword[2:]]
+                aqsis_opts.append((mapname, (None, value)[has_value]))
             #end if
         #end for
         image = self.run_aqsis \
@@ -285,7 +307,7 @@ class RManMagic(magic.Magics) :
             timeout = timeout,
             debug = debug,
             include_search = include_search,
-            aqsis_opts = None # TBD list of keyword,value pairs
+            aqsis_opts = aqsis_opts
           )
         result = None
         if len(image) != 0 :
