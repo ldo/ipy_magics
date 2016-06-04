@@ -1,31 +1,41 @@
-The enclosed Python 3 module defines a “cell magic” for use in an
-IPython/Jupyter notebook that uses the Ghostscript interpreter to
-execute PostScript code. Either copy and paste the file contents into
-a notebook cell, or use the standard IPython “%load” or “%run” magics,
-for example
+The enclosed Python 3 modules define a number of “cell magics” for use
+in an IPython/Jupyter notebook. To define a magic for use in a
+notebook, either copy and paste the module contents into a cell, or
+use the standard `%load` magic to load the contents into a cell, which
+can then be executed, or you can define the magic directly with the
+`%run` magic, for example
 
     %run /path/to/ps_magic.py
 
-to execute the file contents to define the magic in the notebook.
-You can check the magic has been correctly defined by displaying
-its built-in help in the usual way:
+Then you can check that the corresponding magic has been defined by
+examining its help string in the usual way, e.g.
 
     %%ps?
 
-Now you can type PostScript code into a cell. Just so long as the
-first line of the cell begins with “%%ps”, when you execute the cell,
-it will be passed to a new Ghostscript instance for execution.
+## setvar_magic ##
+
+The `%%setvar` magic lets you hold a lot of text in a notebook cell
+and easily assign it to a Python variable for subsequent manipulation.
+The text can be assigned as a single string, or split into a list of
+lines.
+
+## ps_magic ##
+
+The `%%ps` magic uses the Ghostscript interpreter to execute
+PostScript code. Type your PostScript code into a cell, and put “%%ps”
+as the first line. When you execute the cell, a new process will be
+created running the Ghostscript interpreter, which will be fed the
+cell contents for interpretation. Any text or graphics (or both) it
+generates will be displayed in the notebook as the output of the cell.
 
 Note that, unlike a custom Jupyter kernel, there is no context
-preserved across multiple cells; the PostScript code in each cell
-must be self-contained.
+preserved across multiple cells; the PostScript code in each cell must
+be self-contained.
 
-The PostScript code can return either or both textual and graphical
-output. Textual output is whatever is written to the standard output
-of the Ghostscript process by PostScript commands such as “=” and
-“print”, while graphical output is whatever is drawn on the page and
-presented using “showpage”. Whichever is generated will be displayed as
-the output(s) of the cell.
+Textual output is whatever is written to the standard output of the
+Ghostscript process by PostScript commands such as “`=`” and “`print`”,
+while graphical output is whatever is drawn on the page and presented
+using “`showpage`”.
 
 Text output can be displayed as plain text, or formatted as HTML or
 Markdown. This can include mathematical formulae as is usual with
@@ -55,7 +65,7 @@ likely candidates for valid physical formulas:
 
 Graphical output can be in either PNG (default) or PDF. PNG only
 allows for a single page, and is resolution-dependent. PDF allows for
-multiple pages (each “showpage” call you make produces a new page),
+multiple pages (each “`showpage`” call you make produces a new page),
 and can be resolution-independent. For example, this prints two pies,
 segmented into RGB and CMYK primary colours:
 
@@ -132,4 +142,4 @@ segmented into RGB and CMYK primary colours:
     showpage
 
 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>
-2016 June 1
+2016 June 4
