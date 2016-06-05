@@ -166,5 +166,69 @@ though they are held in separate Aqsis input files. It is also
 possible to reference external files, where it might not be practical
 to include the contents of these in a notebook cell.
 
+The valid submagics are as follows:
+
+* `%display`
+
+     may be specified in an inline RIB data section (see `%rib`
+     below) to generate a `Display` directive that will save
+     the render to a unique output image file name. The contents
+     of this file will be displayed as part of the cell output.
+
+* `%include` *filename*
+
+    includes another file at this point in a RIB or shader data.
+    Note that submagics are not recognized in the included file.
+
+* `%rib`
+
+    indicates the start of an inline RIB data section.
+    The subsequent RIB data will be saved to a unique temporary
+    file name and rendered when the end of the data is reached.
+    You can use `Display` directives to save renders to files
+    for reference in subsequent RIB data, but do *not* do
+    any `framebuffer` displays. To indicate render output
+    that is to be displayed, use the `%display` submagic
+    (above) to generate the appropriate `Display` line.
+
+* `%ribfile [`--autodisplay` | `--noautodisplay`] *ribfilename*`
+
+    renders a separate RIB file *ribfilename*. The treatment
+    of any `Display` lines in this file depends on the specified
+    option:
+
+    + `--autodisplay`
+
+        The output filenames specified in all `Display`
+        directives are automatically displayed as
+        cell output.
+
+    + `--noautodisplay`
+
+        The RIB file is processed without special
+        interpretation of `Display` lines, except that
+        `framebuffer` display lines are ignored.
+
+    + neither
+
+        Output filenames specified in `Display` directives
+        specifying `framebuffer` mode are automatically
+        displayed as cell output.
+
+* `%sl` *shader_name*
+
+    indicates the start of an inline shader data section. The
+    subsequent shader data will be saved to a file named
+    *shader_name*`.sl` and automatically compiled. The shader name can
+    then be referenced via directives such as `LighSource` and
+    `Surface` in subsequent RIB data.
+
+* `%slfile` *shader_filename*
+
+    compiles a separate shader file *shader_filename*. As with the
+    `%sl` submagic, the shader name (the base name part of
+    *shader_filename* without any parent directory or `.sl` suffix)
+    can be referenced in subsequent RIB data.
+
 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>
-2016 June 4
+2016 June 5
