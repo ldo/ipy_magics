@@ -106,7 +106,6 @@ class RManMagic(magic.Magics) :
               )
             print(aqsis_output) # debug
             if imgfile_names != None :
-                print("compile %s to give images %s" % (filename, repr(imgfile_names))) # debug
                 for imgfile_name in imgfile_names :
                     images.append \
                       (
