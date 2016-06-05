@@ -191,7 +191,7 @@ The valid submagics are as follows:
     that is to be displayed, use the `%display` submagic
     (above) to generate the appropriate `Display` line.
 
-* `%ribfile [`--autodisplay` | `--noautodisplay`] *ribfilename*`
+* `%ribfile` [`--autodisplay` | `--noautodisplay`] *ribfilename*
 
     renders a separate RIB file *ribfilename*. The treatment
     of any `Display` lines in this file depends on the specified
@@ -220,7 +220,7 @@ The valid submagics are as follows:
     indicates the start of an inline shader data section. The
     subsequent shader data will be saved to a file named
     *shader_name*`.sl` and automatically compiled. The shader name can
-    then be referenced via directives such as `LighSource` and
+    then be referenced via directives such as `LightSource` and
     `Surface` in subsequent RIB data.
 
 * `%slfile` *shader_filename*
@@ -229,6 +229,22 @@ The valid submagics are as follows:
     `%sl` submagic, the shader name (the base name part of
     *shader_filename* without any parent directory or `.sl` suffix)
     can be referenced in subsequent RIB data.
+
+For example, the following cell content
+
+    %%rman --search="/usr/share/aqsis/examples/scenes/fisheye:&" --verbose=0
+    %slfile fisheye_projection.sl
+    %ribfile envmap.rib
+    %ribfile fisheye.rib
+    %ribfile scene.rib
+
+will render the “fisheye” scene that is part of the `aqsis-examples`
+package included with Debian. That directory includes a `render.sh`
+shell script that does the rendering from the command line; the above
+directives effectively recreate the stages of that render script
+using the `%%rman` magic and its submagics. Since the `Display`
+directives in the `.rib` files include two with the `framebuffer`
+mode, you will see two images displayed.
 
 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>
 2016 June 5

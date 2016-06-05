@@ -380,7 +380,7 @@ class RManMagic(magic.Magics) :
 
     @magic.cell_magic
     def rman(self, line, cell) :
-        "executes the cell contents as RenderMan, and displays returned graphical output." \
+        "executes the cell contents as RenderMan, and displays returned graphical output.\n" \
         "Usage:\n" \
         "\n" \
         "    %%rman «options...»\n" \
