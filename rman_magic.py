@@ -471,6 +471,10 @@ class RManMagic(magic.Magics) :
                 if orig_line and line != None and outfile_type == FILE_TYPE.RIB :
                     do_auto_display(False)
                 #end if
+                if orig_line and line != None and line.startswith("#") :
+                    # ignore comment
+                    line = None
+                #end if
                 if line != None :
                     if outfile == None :
                         new_rib_file()
