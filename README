@@ -232,7 +232,7 @@ The valid submagics are as follows:
 
 For example, the following cell content
 
-    %%rman --search="/usr/share/aqsis/examples/scenes/fisheye:&" --verbose=0
+    %%rman --source-search="/usr/share/aqsis/examples/scenes/fisheye:&" --archive-search="/usr/share/aqsis/examples/scenes/fisheye:&" --verbose=0
     %slfile fisheye_projection.sl
     %ribfile envmap.rib
     %ribfile fisheye.rib

@@ -25,7 +25,7 @@ class RManMagic(magic.Magics) :
     " the output."
 
     @staticmethod
-    def run_aqsis(input, timeout = None, debug = False, include_search = None, aqsis_opts = None) :
+    def run_aqsis(input, timeout = None, debug = False, source_search = None, aqsis_opts = None) :
 
         linenr = None
         line = None
@@ -33,8 +33,8 @@ class RManMagic(magic.Magics) :
         work_dir = None
 
         def find_file(filename, search_type, must_exist = True) :
-            if search_type == "includes" :
-                search = include_search
+            if search_type == "sources" :
+                search = source_search
             elif aqsis_opts != None :
                 search = aqsis_opts.get(search_type)
             else :
@@ -267,7 +267,7 @@ class RManMagic(magic.Magics) :
                         if len(line_rest) != 1 :
                             syntax_error("wrong nr args for “include” directive")
                         #end if
-                        file_arg = find_file(line_rest[0], "includes")
+                        file_arg = find_file(line_rest[0], "sources")
                         include_stack.append(input_line)
                         input_line = iter(open(file_arg, "r").read().split("\n"))
                     elif directive in (None, "rib", "ribfile", "sl", "slfile") :
@@ -301,7 +301,7 @@ class RManMagic(magic.Magics) :
                                     auto_display = False
                                 #end if
                             #end for
-                            rib_filename = find_file(args[0], "archives")
+                            rib_filename = find_file(args[0], "sources")
                             new_rib_file()
                             for line in open(rib_filename, "r") :
                                 do_auto_display(auto_display)
@@ -338,7 +338,7 @@ class RManMagic(magic.Magics) :
                             if len(args) != 1 :
                                 syntax_error("need exactly one arg for “slfile” directive")
                             #end if
-                            compile_shader(find_file(args[0], "shaders"))
+                            compile_shader(find_file(args[0], "sources"))
                               # aqsl puts output into current working dir by default, which is nice
                         #end if
                     else :
@@ -385,18 +385,17 @@ class RManMagic(magic.Magics) :
         "    %%rman «options...»\n" \
         "\n" \
         "where valid options are\n" \
-        "    --archive-search=«dir» optional directory to search for .rib files\n" \
+        "    --archive-search=«dir» optional directory for Aqsis to find “Archive” .rib files\n" \
         "    --debug keeps temp files for debugging\n" \
-        "    --include-search=«dir» optional directories to search for %include files\n" \
-        "    --search=«dir» optional directories to search for all files\n" \
-        "    --shader-search=«dir» optional directories to search for .sl files\n" \
-        "    --texture-search=«dir» optional directories to search for texture files\n" \
+        "    --shader-search=«dir» optional directories for Aqsis to find additional compiled shader files\n" \
+        "    --source-search=«dir» optional directories to search for files referenced in submagics\n" \
+        "    --texture-search=«dir» optional directories for Aqsis to find texture files\n" \
         "    --timeout=«timeout» specifies how many seconds to wait for" \
             " subprocesses to respond (default is infinite)\n" \
         "    --verbose=«verbosity» verbosity level 0-3, default is 1"
         timeout = None
         debug = False
-        include_search = None
+        source_search = None
         map_aqsis_opts = \
             {
                 "archive-search" : ("archives", True, True),
@@ -412,9 +411,9 @@ class RManMagic(magic.Magics) :
         def save_search_path(search_type, new_value) :
             # sets a new value for a search-path option, including the old
             # value where there is a “&” item.
-            nonlocal include_search
-            if search_type == "includes" :
-                old_value = include_search
+            nonlocal source_search
+            if search_type == "sources" :
+                old_value = source_search
             else :
                 old_value = aqsis_opts.get(search_type)
             #end if
@@ -430,8 +429,8 @@ class RManMagic(magic.Magics) :
                 #end if
             #end for
             new_value = ":".join(collect)
-            if search_type == "includes" :
-                include_search = new_value
+            if search_type == "sources" :
+                source_search = new_value
             else :
                 aqsis_opts[search_type] = new_value
             #end if
@@ -442,7 +441,7 @@ class RManMagic(magic.Magics) :
           (
             shlex.split(line),
             "",
-                ("debug", "include-search=", "search=", "timeout=",)
+                ("debug", "source-search=", "timeout=",)
             +
                 tuple(k + ("", "=")[map_aqsis_opts[k][1]] for k in map_aqsis_opts)
           )
@@ -452,12 +451,8 @@ class RManMagic(magic.Magics) :
         for keyword, value in opts :
             if keyword == "--debug" :
                 debug = True
-            elif keyword == "--include-search" :
-                save_search_path("includes", value)
-            elif keyword == "--search" :
-                for k in ("includes", "archives", "shaders", "procedurals", "textures") :
-                    save_search_path(k, value)
-                #end for
+            elif keyword == "--source-search" :
+                save_search_path("sources", value)
             elif keyword == "--timeout" :
                 timeout = float(value)
             elif keyword.startswith("--") and keyword[2:] in map_aqsis_opts :
@@ -475,7 +470,7 @@ class RManMagic(magic.Magics) :
             input = cell,
             timeout = timeout,
             debug = debug,
-            include_search = include_search,
+            source_search = source_search,
             aqsis_opts = aqsis_opts
           )
         result = None
