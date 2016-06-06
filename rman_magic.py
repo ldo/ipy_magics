@@ -88,10 +88,16 @@ class RManMagic(magic.Magics) :
             extra = []
             if aqsis_opts != None :
                 for keyword, value in aqsis_opts.items() :
-                    if value != None :
-                        extra.append("-%s=%s" % (keyword, value))
+                    if keyword == "resources" :
+                        # strange there is no specific command-line option for this
+                        assert value != None
+                        extra.append("-option=Option \"searchpath\" \"resource \" \"%s\"" % value)
                     else :
-                        extra.append("-%s" % keyword)
+                        if value != None :
+                            extra.append("-%s=%s" % (keyword, value))
+                        else :
+                            extra.append("-%s" % keyword)
+                        #end if
                     #end if
                 #end for
             #end if
@@ -393,6 +399,8 @@ class RManMagic(magic.Magics) :
         "\n" \
         "    --archive-search=«dir» optional directory for Aqsis to find “archive” .rib files\n" \
         "    --procedural-search=«dir» optional directories for Aqsis to find procedural shader libraries\n" \
+        "    --resource-search=«dir» optional directories to search for files referenced" \
+            " in submagics and for Aqsis to find additional files\n" \
         "    --shader-search=«dir» optional directories for Aqsis to find additional compiled shader files\n" \
         "    --texture-search=«dir» optional directories for Aqsis to find texture files"
         timeout = None
@@ -404,6 +412,7 @@ class RManMagic(magic.Magics) :
               # I don’t think I need “displays”
                 "shader-search" : ("shaders", True, True),
                 "procedural-search" : ("procedurals", True, True),
+              # “resources” handled specially
                 "texture-search" : ("textures", True, True),
                 "progress" : ("Progress", False, False),
                 "verbose" : ("verbose", True, False),
@@ -443,7 +452,7 @@ class RManMagic(magic.Magics) :
           (
             shlex.split(line),
             "",
-                ("debug", "source-search=", "timeout=",)
+                ("debug", "resource-search=", "source-search=", "timeout=",)
             +
                 tuple(k + ("", "=")[map_aqsis_opts[k][1]] for k in map_aqsis_opts)
           )
@@ -453,6 +462,10 @@ class RManMagic(magic.Magics) :
         for keyword, value in opts :
             if keyword == "--debug" :
                 debug = True
+            elif keyword == "--resource-search" :
+                for k in ("sources", "resources") :
+                    save_search_path(k, value)
+                #end for
             elif keyword == "--source-search" :
                 save_search_path("sources", value)
             elif keyword == "--timeout" :

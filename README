@@ -242,10 +242,25 @@ its behaviour:
     the previous search path string (the initial value being
     equivalent to “`.`”, representing the temporary work directory).
 
+* `--timeout=`*timeout*
+
+    specifies the maximum number of seconds to wait for subprocesses
+    to respond. The default is infinite.
+
+* `--verbose=`*verbosity*
+
+    specifies the integer verbosity level 0..3 for Aqsis. The default
+    is 1.
+
 * `--archive-search=`*paths*
 
     tells Aqsis where to find additional `.rib` files referenced in
     the `ReadArchive` directive.
+
+* `--resource-search=`*paths*
+
+    specifies paths to be used for all of `--source-search`,
+    `--archive-search`, `--shader-search` and `--texture-search`.
 
 * `--shader-search=`*paths*
 
@@ -259,7 +274,7 @@ its behaviour:
 
 * `--texture-search=`*paths*
 
-    tells Aqsis where toe find texture files (other than those that
+    tells Aqsis where to find texture files (other than those that
     might have been produced as a result of rendering prior `.rib`
     data). The value here is passed straight through to the `-texture`
     option to Aqsis. Don’t forget to include the special `&` value
@@ -268,7 +283,7 @@ its behaviour:
 
 For example, the following cell content
 
-    %%rman --source-search="/usr/share/aqsis/examples/scenes/fisheye:&" --archive-search="/usr/share/aqsis/examples/scenes/fisheye:&" --verbose=0
+    %%rman --resource-search="/usr/share/aqsis/examples/scenes/fisheye:&" --verbose=0
     %slfile fisheye_projection.sl
     %ribfile envmap.rib
     %ribfile fisheye.rib
