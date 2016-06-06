@@ -385,14 +385,16 @@ class RManMagic(magic.Magics) :
         "    %%rman «options...»\n" \
         "\n" \
         "where valid options are\n" \
-        "    --archive-search=«dir» optional directory for Aqsis to find “Archive” .rib files\n" \
         "    --debug keeps temp files for debugging\n" \
-        "    --shader-search=«dir» optional directories for Aqsis to find additional compiled shader files\n" \
         "    --source-search=«dir» optional directories to search for files referenced in submagics\n" \
-        "    --texture-search=«dir» optional directories for Aqsis to find texture files\n" \
         "    --timeout=«timeout» specifies how many seconds to wait for" \
             " subprocesses to respond (default is infinite)\n" \
-        "    --verbose=«verbosity» verbosity level 0-3, default is 1"
+        "    --verbose=«verbosity» verbosity level 0-3, default is 1\n" \
+        "\n" \
+        "    --archive-search=«dir» optional directory for Aqsis to find “archive” .rib files\n" \
+        "    --procedural-search=«dir» optional directories for Aqsis to find procedural shader libraries\n" \
+        "    --shader-search=«dir» optional directories for Aqsis to find additional compiled shader files\n" \
+        "    --texture-search=«dir» optional directories for Aqsis to find texture files"
         timeout = None
         debug = False
         source_search = None

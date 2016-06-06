@@ -230,6 +230,42 @@ The valid submagics are as follows:
     *shader_filename* without any parent directory or `.sl` suffix)
     can be referenced in subsequent RIB data.
 
+The `%%rman` magic itself takes additional options to control
+its behaviour:
+
+* `--source-search=`*paths*
+
+    specifies directories in which to look for files referenced in
+    `%include`, `%ribfile` and `%slfile` submagics. *paths* follows
+    the Aqsis convention of consisting of a colon-separated sequence
+    of path strings, where the special value `&` can be used to insert
+    the previous search path string (the initial value being
+    equivalent to “`.`”, representing the temporary work directory).
+
+* `--archive-search=`*paths*
+
+    tells Aqsis where to find additional `.rib` files referenced in
+    the `ReadArchive` directive.
+
+* `--shader-search=`*paths*
+
+    tells Aqsis where to find *compiled* shaders. The value here is
+    passed straight through to the `-shader` option to Aqsis. If there
+    are additional precompiled shaders (`.slx` files) that you want to
+    use, that you haven’t told the `%%rman` magic to compile for you,
+    then you can tell Aqsis where to find them here. Don’t forget to
+    include the special `&` value somewhere if you want Aqsis to find
+    any shaders you compiled with the `%sl` submagic.
+
+* `--texture-search=`*paths*
+
+    tells Aqsis where toe find texture files (other than those that
+    might have been produced as a result of rendering prior `.rib`
+    data). The value here is passed straight through to the `-texture`
+    option to Aqsis. Don’t forget to include the special `&` value
+    somewhere if you want Aqsis to find the rendered output from any
+    prior `%rib` or `%ribfile` submagics.
+
 For example, the following cell content
 
     %%rman --source-search="/usr/share/aqsis/examples/scenes/fisheye:&" --archive-search="/usr/share/aqsis/examples/scenes/fisheye:&" --verbose=0
