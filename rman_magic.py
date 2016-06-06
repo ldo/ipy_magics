@@ -83,6 +83,18 @@ class RManMagic(magic.Magics) :
         imgfile_names = None
         images = []
 
+        def collect_display(filename) :
+            images.append \
+              (
+                subprocess.check_output
+                  (
+                    args = ("convert", filename, "png:/dev/stdout"),
+                    universal_newlines = False,
+                    timeout = timeout
+                  )
+              )
+        #end collect_display
+
         def compile_rib(filename) :
             nonlocal imgfile_names
             extra = []
@@ -113,15 +125,7 @@ class RManMagic(magic.Magics) :
             print(aqsis_output) # debug
             if imgfile_names != None :
                 for imgfile_name in imgfile_names :
-                    images.append \
-                      (
-                        subprocess.check_output
-                          (
-                            args = ("convert", imgfile_name, "png:/dev/stdout"),
-                            universal_newlines = False,
-                            timeout = timeout
-                          )
-                      )
+                    collect_display(imgfile_name)
                 #end for
                 imgfile_names = None
             #end if
@@ -257,9 +261,9 @@ class RManMagic(magic.Magics) :
                         directive = None
                     #end if
                     replace_line = None # initial assumption
-                    if directive == "display" :
+                    if directive == "autodisplay" :
                         if outfile != None and outfile_type != FILE_TYPE.RIB :
-                            syntax_error("%display must be in %rib file")
+                            syntax_error("%autodisplay must be in %rib file")
                         #end if
                         imgfile_name = new_imgfile_name()
                         replace_line = \
@@ -276,7 +280,7 @@ class RManMagic(magic.Magics) :
                         file_arg = find_file(line_rest[0], "sources")
                         include_stack.append(input_line)
                         input_line = iter(open(file_arg, "r").read().split("\n"))
-                    elif directive in (None, "rib", "ribfile", "sl", "slfile") :
+                    elif directive in (None, "display", "rib", "ribfile", "sl", "slfile") :
                         if outfile != None :
                             outfile.close()
                             outfile = None
@@ -284,7 +288,12 @@ class RManMagic(magic.Magics) :
                         #end if
                         if line == None :
                             break
-                        if directive == "rib" :
+                        if directive == "display" :
+                            if len(line_rest) != 1 :
+                                syntax_error("expecting only one arg for “display” directive")
+                            #end if
+                            collect_display(os.path.join(work_dir, line_rest[0]))
+                        elif directive == "rib" :
                             if len(line_rest) != 0 :
                                 syntax_error("unexpected args for “rib” directive")
                             #end if

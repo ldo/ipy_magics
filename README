@@ -168,12 +168,20 @@ to include the contents of these in a notebook cell.
 
 The valid submagics are as follows:
 
-* `%display`
+* `%autodisplay`
 
-     may be specified in an inline RIB data section (see `%rib`
-     below) to generate a `Display` directive that will save
-     the render to a unique output image file name. The contents
-     of this file will be displayed as part of the cell output.
+    may be specified in an inline RIB data section (see `%rib`
+    below) to generate a `Display` directive that will save
+    the render to a unique output image file name. The contents
+    of this file will be displayed as part of the cell output.
+
+* `%display` *filename*
+
+    useful in the situation where `%%rman` cannot automatically
+    figure out which images to display (such as when “framebuffer”
+    display directives occur in nested archive files). You can
+    explicitly specify the name of a rendered output file to
+    be displayed as part of the cell output.
 
 * `%include` *filename*
 
@@ -188,7 +196,7 @@ The valid submagics are as follows:
     You can use `Display` directives to save renders to files
     for reference in subsequent RIB data, but do *not* do
     any `framebuffer` displays. To indicate render output
-    that is to be displayed, use the `%display` submagic
+    that is to be displayed, use the `%autodisplay` submagic
     (above) to generate the appropriate `Display` line.
 
 * `%ribfile` [`--autodisplay` | `--noautodisplay`] *ribfilename*
