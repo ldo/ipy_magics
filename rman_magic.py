@@ -337,7 +337,7 @@ class RManMagic(magic.Magics) :
                 "sl" : submagic_sl,
                 "slfile" : submagic_slfile,
             }
-        in_file_submagics = {"autodisplay"}
+        in_file_submagics = {"autodisplay", "include"}
 
     #begin run_aqsis
         temp_dir = tempfile.mkdtemp(prefix = "rman-magic-")
