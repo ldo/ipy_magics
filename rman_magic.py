@@ -103,7 +103,7 @@ class RManMagic(magic.Magics) :
                     if keyword == "resources" :
                         # strange there is no specific command-line option for this
                         assert value != None
-                        extra.append("-option=Option \"searchpath\" \"resource \" \"%s\"" % value)
+                        extra.append("-option=Option \"searchpath\" \"resource \" [\"%s\"]" % value)
                     else :
                         if value != None :
                             extra.append("-%s=%s" % (keyword, value))
@@ -218,6 +218,127 @@ class RManMagic(magic.Magics) :
             #end if
         #end do_auto_display
 
+        input_line = None
+        include_stack = None
+        orig_line = None
+        replace_line = None
+
+        def submagic_autodisplay(line_rest) :
+            nonlocal orig_line, replace_line
+            if outfile != None and outfile_type != FILE_TYPE.RIB :
+                syntax_error("%autodisplay must be in %rib file")
+            #end if
+            imgfile_name = new_imgfile_name()
+            replace_line = \
+                (
+                    "Display \"%(outfile)s\" \"file\" \"rgba\""
+                %
+                    {"outfile" : imgfile_name}
+                )
+            orig_line = False
+        #end submagic_autodisplay
+
+        def submagic_display(line_rest) :
+            if len(line_rest) != 1 :
+                syntax_error("expecting only one arg for “display” directive")
+            #end if
+            collect_display(os.path.join(work_dir, line_rest[0]))
+        #end submagic_display
+
+        def submagic_include(line_rest) :
+            nonlocal input_line
+            if len(line_rest) != 1 :
+                syntax_error("wrong nr args for “include” directive")
+            #end if
+            file_arg = find_file(line_rest[0], "sources")
+            include_stack.append(input_line)
+            input_line = iter(open(file_arg, "r").read().split("\n"))
+        #end submagic_include
+
+        def submagic_rib(line_rest) :
+            if len(line_rest) != 0 :
+                syntax_error("unexpected args for “rib” directive")
+            #end if
+            new_rib_file()
+        #end submagic_rib
+
+        def submagic_ribfile(line_rest) :
+            nonlocal outfile, line
+            opts, args = getopt.getopt \
+              (
+                line_rest,
+                "",
+                ["autodisplay", "noautodisplay"]
+              )
+            if len(args) != 1 :
+                syntax_error("need exactly one arg for “ribfile” directive")
+            #end if
+            auto_display = None
+            for keyword, value in opts :
+                if keyword == "--autodisplay" :
+                    auto_display = True
+                elif keyword == "--noautodisplay" :
+                    auto_display = False
+                #end if
+            #end for
+            rib_filename = find_file(args[0], "sources")
+            new_rib_file()
+            for line in open(rib_filename, "r") :
+                do_auto_display(auto_display)
+                if line != None :
+                    outfile.write(line)
+                    outfile.write("\n")
+                #end if
+            #end for
+            outfile.close()
+            outfile = None
+            compile_rib(outfile_name)
+        #end submagic_ribfile
+
+        def submagic_sl(line_rest) :
+            nonlocal outfile_name, outfile_type, outfile
+            if len(line_rest) != 1 :
+                syntax_error("wrong nr args for “sl” directive")
+            #end if
+            shader_filename = line_rest[0]
+            if "/" in shader_filename :
+                syntax_error("no slashes allowed in “sl” pathname")
+            #end if
+            shader_filename += ".sl"
+            outfile_name = os.path.join(work_dir, shader_filename)
+            if os.path.exists(outfile_name) :
+                syntax_error("shader file “%s” already exists" % shader_filename)
+            #end if
+            outfile = open(outfile_name, "w")
+            outfile_type = FILE_TYPE.SHADER
+        #end submagic_sl
+
+        def submagic_slfile(line_rest) :
+            opts, args = getopt.getopt \
+              (
+                line_rest,
+                "",
+                []
+              )
+            if len(args) != 1 :
+                syntax_error("need exactly one arg for “slfile” directive")
+            #end if
+            compile_shader(find_file(args[0], "sources"))
+              # aqsl puts output into current working dir by default, which is nice
+        #end submagic_slfile
+
+        submagics = \
+            {
+                "autodisplay" : submagic_autodisplay,
+                "display" : submagic_display,
+                "include" : submagic_include,
+                "rib" : submagic_rib,
+                "ribfile" : submagic_ribfile,
+                "sl" : submagic_sl,
+                "slfile" : submagic_slfile,
+            }
+        in_file_submagics = {"autodisplay"}
+
     #begin run_aqsis
         temp_dir = tempfile.mkdtemp(prefix = "rman-magic-")
         try :
@@ -261,104 +382,19 @@ class RManMagic(magic.Magics) :
                         directive = None
                     #end if
                     replace_line = None # initial assumption
-                    if directive == "autodisplay" :
-                        if outfile != None and outfile_type != FILE_TYPE.RIB :
-                            syntax_error("%autodisplay must be in %rib file")
-                        #end if
-                        imgfile_name = new_imgfile_name()
-                        replace_line = \
-                            (
-                                "Display \"%(outfile)s\" \"file\" \"rgba\""
-                            %
-                                {"outfile" : imgfile_name}
-                            )
-                        orig_line = False
-                    elif directive == "include" :
-                        if len(line_rest) != 1 :
-                            syntax_error("wrong nr args for “include” directive")
-                        #end if
-                        file_arg = find_file(line_rest[0], "sources")
-                        include_stack.append(input_line)
-                        input_line = iter(open(file_arg, "r").read().split("\n"))
-                    elif directive in (None, "display", "rib", "ribfile", "sl", "slfile") :
+                    if line == None or directive not in in_file_submagics :
                         if outfile != None :
                             outfile.close()
                             outfile = None
                             outfile_actions[outfile_type](outfile_name)
                         #end if
-                        if line == None :
-                            break
-                        if directive == "display" :
-                            if len(line_rest) != 1 :
-                                syntax_error("expecting only one arg for “display” directive")
-                            #end if
-                            collect_display(os.path.join(work_dir, line_rest[0]))
-                        elif directive == "rib" :
-                            if len(line_rest) != 0 :
-                                syntax_error("unexpected args for “rib” directive")
-                            #end if
-                            new_rib_file()
-                        elif directive == "ribfile" :
-                            opts, args = getopt.getopt \
-                              (
-                                line_rest,
-                                "",
-                                ["autodisplay", "noautodisplay"]
-                              )
-                            if len(args) != 1 :
-                                syntax_error("need exactly one arg for “ribfile” directive")
-                            #end if
-                            auto_display = None
-                            for keyword, value in opts :
-                                if keyword == "--autodisplay" :
-                                    auto_display = True
-                                elif keyword == "--noautodisplay" :
-                                    auto_display = False
-                                #end if
-                            #end for
-                            rib_filename = find_file(args[0], "sources")
-                            new_rib_file()
-                            for line in open(rib_filename, "r") :
-                                do_auto_display(auto_display)
-                                if line != None :
-                                    outfile.write(line)
-                                    outfile.write("\n")
-                                #end if
-                            #end for
-                            outfile.close()
-                            outfile = None
-                            compile_rib(outfile_name)
-                        elif directive == "sl" :
-                            if len(line_rest) != 1 :
-                                syntax_error("wrong nr args for “sl” directive")
-                            #end if
-                            shader_filename = line_rest[0]
-                            if "/" in shader_filename :
-                                syntax_error("no slashes allowed in “sl” pathname")
-                            #end if
-                            shader_filename += ".sl"
-                            outfile_name = os.path.join(work_dir, shader_filename)
-                            if os.path.exists(outfile_name) :
-                                syntax_error("shader file “%s” already exists" % shader_filename)
-                            #end if
-                            outfile = open(outfile_name, "w")
-                            outfile_type = FILE_TYPE.SHADER
-                        elif directive == "slfile" :
-                            opts, args = getopt.getopt \
-                              (
-                                line_rest,
-                                "",
-                                []
-                              )
-                            if len(args) != 1 :
-                                syntax_error("need exactly one arg for “slfile” directive")
-                            #end if
-                            compile_shader(find_file(args[0], "sources"))
-                              # aqsl puts output into current working dir by default, which is nice
-                        #end if
-                    else :
+                    #end if
+                    if line == None :
+                        break
+                    if directive not in submagics :
                         syntax_error("unrecognized submagic directive “%s”" % directive)
                     #end if
+                    submagics[directive](line_rest)
                     line = replace_line # already processed
                 #end if
                 if orig_line and line != None and outfile_type == FILE_TYPE.RIB :
