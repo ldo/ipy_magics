@@ -48,7 +48,7 @@ class RManMagic(magic.Magics) :
                     if search != None :
                         for try_dir in search.split(":") :
                             if try_dir == "&" :
-                                try_path.append(file_arg)
+                                try_path.append(os.path.join(work_dir, file_arg))
                             else :
                                 try_path.append(os.path.join(try_dir, file_arg))
                             #end if
@@ -56,10 +56,10 @@ class RManMagic(magic.Magics) :
                     #end if
                 #end for
                 if len(try_path) == 0 :
-                    try_path = [file_arg]
+                    try_path = [os.path.join(work_dir, file_arg)]
                 #end if
             else :
-                try_path = [file_arg]
+                try_path = [os.path.join(work_dir, file_arg)]
             #end if
             while True :
                 if len(try_path) == 0 :
