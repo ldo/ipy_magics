@@ -335,6 +335,68 @@ class RManMagic(magic.Magics) :
               # aqsl puts output into current working dir by default, which is nice
         #end submagic_slfile
 
+        def submagic_teqser(line_rest) :
+            valid_opts = \
+                {
+                    "bake" : True,
+                    "compression" : True,
+                    "envcube" : False,
+                      # I am assuming the 6 files are input args, not values for this option
+                    "envlatl" : False,
+                    "filter" : True,
+                    "fov(envcube)" : True,
+                    "quality" : True,
+                    "shadow" : False,
+                    "swrap" : True,
+                    "twrap" : True,
+                    "wrap" : True,
+                    "swidth" : True,
+                    "twidth" : True,
+                    "width" : True,
+                    # todo: verbose
+                }
+            opts, args = getopt.getopt \
+              (
+                line_rest,
+                "",
+                list(k + ("", "=")[valid_opts[k]] for k in valid_opts)
+              )
+            doing_envcube = any("envcube" == opt[0] for opt in opts)
+            expect_args = (2, 7)[doing_envcube]
+            if len(args) != expect_args :
+                syntax_error \
+                  (
+                        "expecting %d args for teqser%s"
+                    %
+                        (expect_args, ("", " -envcube")[doing_envcube])
+                  )
+            #end if
+            cmd = ["teqser"]
+            for keyword, value in opts :
+                if keyword.startswith("--") :
+                    keyword = keyword[2:]
+                    cmd.append \
+                      (
+                            "-%(keyword)s%(value)s"
+                        %
+                            {
+                                "keyword" : keyword,
+                                "value" :
+                                    (lambda : "", lambda : "=%s" % value)[valid_opts[keyword]](),
+                            }
+                      )
+                #end if
+            #end for
+            input_files = list(find_file(f, "textures") for f in args[:-1])
+            output_file = args[-1]
+            subprocess.check_call \
+              (
+                args = cmd + input_files + [output_file],
+                cwd = work_dir,
+                timeout = timeout
+              )
+        #end submagic_teqser
+
         submagics = \
             {
                 "autodisplay" : submagic_autodisplay,
@@ -344,6 +406,7 @@ class RManMagic(magic.Magics) :
                 "ribfile" : submagic_ribfile,
                 "sl" : submagic_sl,
                 "slfile" : submagic_slfile,
+                "teqser" : submagic_teqser,
             }
         in_file_submagics = {"autodisplay", "include"}
 
