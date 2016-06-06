@@ -1,9 +1,9 @@
 The enclosed Python 3 modules define a number of “cell magics” for use
-in an IPython/Jupyter notebook. To define a magic for use in a
-notebook, either copy and paste the module contents into a cell, or
-use the standard `%load` magic to load the contents into a cell, which
-can then be executed, or you can define the magic directly with the
-`%run` magic, for example
+in an IPython notebook. To define a magic for use in a notebook,
+either copy and paste the module contents into a cell, or use the
+standard `%load` magic to load the contents into a cell, which can
+then be executed, or you can define the magic directly with the `%run`
+magic, for example
 
     %run /path/to/ps_magic.py
 
@@ -247,4 +247,4 @@ directives in the `.rib` files include two with the `framebuffer`
 mode, you will see two images displayed.
 
 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>
-2016 June 5
+2016 June 6
