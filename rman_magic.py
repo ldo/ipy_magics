@@ -33,23 +33,31 @@ class RManMagic(magic.Magics) :
         work_dir = None
 
         def find_file(filename, search_type, must_exist = True) :
-            if search_type == "sources" :
-                search = source_search
-            elif aqsis_opts != None :
-                search = aqsis_opts.get(search_type)
-            else :
-                search = None
-            #end if
             file_arg = filename
-            if not file_arg.startswith("/") and search != None :
+            if not file_arg.startswith("/") :
+                if search_type == "sources" :
+                    search1 = source_search
+                elif aqsis_opts != None :
+                    search1 = aqsis_opts.get(search_type)
+                else :
+                    search1 = None
+                #end if
+                search2 = aqsis_opts.get("resources")
                 try_path = []
-                for try_dir in search.split(":") :
-                    if try_dir == "&" :
-                        try_path.append(file_arg)
-                    else :
-                        try_path.append(os.path.join(try_dir, file_arg))
+                for search in (search1, search2) :
+                    if search != None :
+                        for try_dir in search.split(":") :
+                            if try_dir == "&" :
+                                try_path.append(file_arg)
+                            else :
+                                try_path.append(os.path.join(try_dir, file_arg))
+                            #end if
+                        #end for
                     #end if
                 #end for
+                if len(try_path) == 0 :
+                    try_path = [file_arg]
+                #end if
             else :
                 try_path = [file_arg]
             #end if
