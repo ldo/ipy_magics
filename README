@@ -243,7 +243,7 @@ The valid submagics are as follows:
     invokes the `teqser` command with the specified options.
     Most of the teqser options will work, except they must
     have 2 dashes on the front instead of one. Input files will
-    be looked for in the --texture-search and --resource-search
+    be looked for in the `--texture-search` and `--resource-search`
     paths.
 
 The `%%rman` magic itself takes additional options to control
