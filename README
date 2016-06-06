@@ -281,7 +281,21 @@ its behaviour:
     somewhere if you want Aqsis to find the rendered output from any
     prior `%rib` or `%ribfile` submagics.
 
-For example, the following cell content
+For example, the cell content
+
+    %%rman --source-search="&:/usr/share/aqsis/examples/scenes/vase:/usr/share/aqsis/shaders"
+    %slfile displacement/dented.sl
+    %slfile light/shadowspot.sl
+    %ribfile vase.rib
+
+will render the “vase” example scene that is part of the
+`aqsis-examples` package included with Debian. Notice how the
+`--source-search` line includes an appropriate entry to allow the
+`%slfile` submagics to find their files using shorter names; of
+course, the full pathnames could have been put into those submagics
+instead.
+
+For another example, the following
 
     %%rman --resource-search="/usr/share/aqsis/examples/scenes/fisheye:&" --verbose=0
     %slfile fisheye_projection.sl
@@ -289,8 +303,7 @@ For example, the following cell content
     %ribfile fisheye.rib
     %ribfile scene.rib
 
-will render the “fisheye” scene that is part of the `aqsis-examples`
-package included with Debian. That directory includes a `render.sh`
+will render the “fisheye” example scene. That directory includes a `render.sh`
 shell script that does the rendering from the command line; the above
 directives effectively recreate the stages of that render script
 using the `%%rman` magic and its submagics. Since the `Display`
