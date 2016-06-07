@@ -182,6 +182,63 @@ class RManMagic(magic.Magics) :
         #end new_imgfile_name
 
         display_pat = re.compile(r"^\s*display\s*(.+)$", flags = re.IGNORECASE)
+        readarchive_pat = re.compile(r"^\s*readarchive\s*(.+)$", flags = re.IGNORECASE)
+
+        class InputStack :
+
+            def __init__(self) :
+                self.include_stack = []
+                self.cur_input = None
+            #end __init__
+
+            def push_iter(self, lines_iter) :
+                if self.cur_input != None :
+                    self.include_stack.append(self.cur_input)
+                #end if
+                self.cur_input = iter(lines_iter)
+            #end push_iter
+
+            def push_file(self, filename) :
+                self.push_iter(open(filename, "r").read().split("\n"))
+            #end push_file
+
+            def __iter__(self) :
+                return \
+                    self
+            #end __iter__
+
+            def __next__(self) :
+                assert self.cur_input != None
+                while True :
+                    line = next(self.cur_input, None)
+                    if line != None :
+                        break
+                    if len(self.include_stack) == 0 :
+                        self.cur_input = None
+                        raise StopIteration
+                    #end if
+                    self.cur_input = self.include_stack.pop()
+                #end while
+                return \
+                    line
+            #end __next__
+
+            @property
+            def include_depth(self) :
+                return \
+                    len(self.include_stack)
+            #end include_depth
+
+        #end InputStack
+
+        cur_input = None
+        orig_line = None
+        replace_line = None
+
+        def do_include(file_arg, search_type) :
+            file_name = find_file(file_arg, search_type)
+            cur_input.push_file(file_name)
+        #end do_include
 
         def try_parse_display_line(line) :
             # tries to recognize line as a “display” command, returning the
@@ -226,10 +283,18 @@ class RManMagic(magic.Magics) :
             #end if
         #end do_auto_display
 
-        input_line = None
-        include_stack = None
-        orig_line = None
-        replace_line = None
+        def do_auto_include() :
+            nonlocal line
+            readarchive_match = readarchive_pat.match(line)
+            if readarchive_match != None :
+                parms = shlex.split(readarchive_match.group(1))
+                if len(parms) != 1 :
+                    syntax_error("expecting exactly one filename for ReadArchive directive")
+                #end if
+                line = None
+                do_include(parms[0], "archives")
+            #end if
+        #end do_auto_include
 
         def submagic_autodisplay(line_rest) :
             nonlocal orig_line, replace_line
@@ -254,13 +319,10 @@ class RManMagic(magic.Magics) :
         #end submagic_display
 
         def submagic_include(line_rest) :
-            nonlocal input_line
             if len(line_rest) != 1 :
                 syntax_error("wrong nr args for “include” directive")
             #end if
-            file_arg = find_file(line_rest[0], "sources")
-            include_stack.append(input_line)
-            input_line = iter(open(file_arg, "r").read().split("\n"))
+            do_include(line_rest[0], "sources")
         #end submagic_include
 
         def submagic_rib(line_rest) :
@@ -271,7 +333,8 @@ class RManMagic(magic.Magics) :
         #end submagic_rib
 
         def submagic_ribfile(line_rest) :
-            nonlocal outfile, line
+            nonlocal cur_input, outfile, line
+            save_input = cur_input
             opts, args = getopt.getopt \
               (
                 line_rest,
@@ -291,8 +354,13 @@ class RManMagic(magic.Magics) :
             #end for
             rib_filename = find_file(args[0], "sources")
             new_rib_file()
-            for line in open(rib_filename, "r") :
+            cur_input = InputStack()
+            cur_input.push_file(rib_filename)
+            for line in cur_input :
                 do_auto_display(auto_display)
+                if line != None :
+                    do_auto_include()
+                #end if
                 if line != None :
                     outfile.write(line)
                     outfile.write("\n")
@@ -300,6 +368,7 @@ class RManMagic(magic.Magics) :
             #end for
             outfile.close()
             outfile = None
+            cur_input = save_input
             compile_rib(outfile_name)
         #end submagic_ribfile
 
@@ -418,26 +487,18 @@ class RManMagic(magic.Magics) :
             os.mkdir(work_dir)
               # separate subdirectory for files created by caller
             submagic_pat = re.compile(r"^\%(\w+)(?:\s+(.+))?$")
-            input_line = iter(input.split("\n"))
-            include_stack = []
+            cur_input = InputStack()
               # actually will never be more than 1 deep, since I don’t recognize
               # submagics in included files
+            cur_input.push_iter(input.split("\n"))
             linenr = 0
             while True :
-                while True :
-                    line = next(input_line, None)
-                    if line != None :
-                        if len(include_stack) == 0 :
-                            linenr += 1
-                        #end if
-                        break
-                    #end if
-                    if len(include_stack) == 0 :
-                        break
-                    input_line = include_stack.pop()
-                #end while
+                line = next(cur_input, None)
+                if line != None and cur_input.include_depth == 0 :
+                    linenr += 1
+                #end if
                 orig_line = True
-                if line == None or len(include_stack) == 0 and line.startswith("%") :
+                if line == None or cur_input.include_depth == 0 and line.startswith("%") :
                     if line != None :
                         parse = submagic_pat.match(line)
                         if parse == None or len(parse.groups()) != 2 :
@@ -468,8 +529,13 @@ class RManMagic(magic.Magics) :
                     submagics[directive](line_rest)
                     line = replace_line # already processed
                 #end if
-                if orig_line and line != None and outfile_type == FILE_TYPE.RIB :
-                    do_auto_display(False)
+                if orig_line and outfile_type == FILE_TYPE.RIB :
+                    if line != None :
+                        do_auto_display(False)
+                    #end if
+                    if line != None :
+                        do_auto_include()
+                    #end if
                 #end if
                 if orig_line and line != None and line.startswith("#") :
                     # ignore comment
