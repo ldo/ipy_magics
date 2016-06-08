@@ -468,6 +468,7 @@ class RManMagic(magic.Magics) :
 
         submagics = \
             {
+                "#" : lambda line_rest : None, # skip comment
                 "autodisplay" : submagic_autodisplay,
                 "display" : submagic_display,
                 "include" : submagic_include,
@@ -500,15 +501,19 @@ class RManMagic(magic.Magics) :
                 orig_line = True
                 if line == None or cur_input.include_depth == 0 and line.startswith("%") :
                     if line != None :
-                        parse = submagic_pat.match(line)
-                        if parse == None or len(parse.groups()) != 2 :
-                            syntax_error("bad directive line")
-                        #end if
-                        directive, line_rest = parse.groups()
-                        if line_rest != None :
-                            line_rest = shlex.split(line_rest)
+                        if line.startswith("%#") :
+                            directive, line_rest = "#", []
                         else :
-                            line_rest = []
+                            parse = submagic_pat.match(line)
+                            if parse == None or len(parse.groups()) != 2 :
+                                syntax_error("bad directive line")
+                            #end if
+                            directive, line_rest = parse.groups()
+                            if line_rest != None :
+                                line_rest = shlex.split(line_rest)
+                            else :
+                                line_rest = []
+                            #end if
                         #end if
                     else :
                         directive = None
@@ -536,10 +541,6 @@ class RManMagic(magic.Magics) :
                     if line != None :
                         do_auto_include()
                     #end if
-                #end if
-                if orig_line and line != None and line.startswith("#") :
-                    # ignore comment
-                    line = None
                 #end if
                 if line != None :
                     if outfile == None :
