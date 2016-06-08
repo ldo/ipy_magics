@@ -140,12 +140,22 @@ class RManMagic(magic.Magics) :
         #end compile_rib
 
         def compile_shader(filename) :
-            subprocess.check_call \
+            slproc = subprocess.Popen \
               (
                 args = ("aqsl", filename),
-                cwd = work_dir,
-                timeout = timeout
+                stdin = subprocess.DEVNULL,
+                stdout = subprocess.PIPE,
+                stderr = subprocess.STDOUT,
+                universal_newlines = True,
+                cwd = work_dir
               )
+            slproc_output, _ = slproc.communicate(timeout = timeout)
+            if slproc_output != None :
+                print(slproc_output) # debug
+            #end if
+            if slproc.returncode != 0 :
+                print("compilation of shader “%s” returned %d" % (filename, slproc.returncode))
+            #end if
         #end compile_shader
 
         outfile_actions = \
