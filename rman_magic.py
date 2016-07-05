@@ -468,12 +468,16 @@ class RManMagic(magic.Magics) :
             #end for
             input_files = list(find_file(f, "textures") for f in args[:-1])
             output_file = args[-1]
-            subprocess.check_call \
+            teqser_output = subprocess.check_output \
               (
                 args = cmd + input_files + [output_file],
+                stdin = subprocess.DEVNULL,
+                stderr = subprocess.STDOUT,
+                universal_newlines = True,
                 cwd = work_dir,
                 timeout = timeout
               )
+            print(teqser_output) # debug
         #end submagic_teqser
 
         submagics = \
