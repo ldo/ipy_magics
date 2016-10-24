@@ -19,6 +19,63 @@ hold a lot of text in a notebook cell and easily assign it to a Python
 variable for subsequent manipulation. The text can be assigned as a
 single string, or split into a list of lines.
 
+## Csound Magic ##
+
+The `%%csound` magic (defined in the file `csound_magic.py`) lets
+you insert [Csound](http://www.csounds.com/) code in a cell for
+generating and playing sound. The cell contents are expected to
+be a complete “unified-format” (orchestral and score definition in
+one) file. For example, the following cell contents demonstrate
+the “padsynth” function generator with various frequency spreads:
+
+    %%csound
+    <CsoundSynthesizer>
+
+        <CsInstruments>
+
+            sr = 44100
+            ;kr = 4410
+            ksmps = 32
+            nchnls = 1
+            0dbfs = 1
+
+            instr 1
+                ibasefreq cpsmidinn 60
+                ispread = p5
+                ipad_len = 2^18
+                ipad ftgenonce 0, 0, ipad_len, "padsynth", ibasefreq, ispread, 1, 1, 1, 1, \
+                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+                iamp = 1
+                ifreq cpsmidinn p4
+                araw poscil iamp, ifreq * sr / ipad_len / ibasefreq, ipad
+                out araw
+            endin
+
+        </CsInstruments>
+
+        <CsScore>
+            t0 120
+            i1 0 1 60 1
+            i. + . 67
+            i. + . 72
+            i. ^+2 1 60 10
+            i. + . 67
+            i. + . 72
+            i. ^+2 1 60 100
+            i. + . 67
+            i. + . 72
+            i. ^+2 1 60 300 ; Angry bees! Much wider and it all turns into noise.
+            i. + . 67
+            i. + . 72
+            e
+        </CsScore>
+
+    </CsoundSynthesizer>
+
+When the cell has finished executing, the cell output will show the
+usual Jupyter audio-playback widget which you can use to hear the
+resulting sound.
+
 ## PostScript Magic ##
 
 The `%%ps` magic (defined in the file `ps_magic.py`) uses the
@@ -327,4 +384,4 @@ directives in the `.rib` files include two with the `framebuffer`
 mode, you will see two images displayed.
 
 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>
-2016 June 6
+2016 October 24
