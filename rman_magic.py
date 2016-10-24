@@ -581,8 +581,8 @@ class RManMagic(magic.Magics) :
     #end run_aqsis
 
     # Note on args to actual magic methods:
-    #“line” is whatever was typed on the %% line after the magic name.
-    #“cell” is the rest of the cell contents.
+    # “line” is whatever was typed on the %% line after the magic name.
+    # “cell” is the rest of the cell contents.
 
     @magic.cell_magic
     def rman(self, line, cell) :
