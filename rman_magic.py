@@ -335,21 +335,21 @@ class RManMagic(magic.Magics) :
             do_include(line_rest[0], "sources")
         #end submagic_include
 
-        def submagic_insvar(line_rest) :
+        def submagic_insval(line_rest) :
             if len(line_rest) != 1 :
-                syntax_error("expecting only one arg for “insvar” directive")
+                syntax_error("expecting only one arg for “insval” directive")
             #end if
             expr = line_rest[0]
             try :
                 val = get_ipython().ev(expr)
             except Exception as exc :
-                syntax_error("insvar: when trying to evaluate %s: %s" % (repr(expr), repr(exc)))
+                syntax_error("insval: when trying to evaluate %s: %s" % (repr(expr), repr(exc)))
             #end try
             if not isinstance(val, str) :
                 syntax_error("%s does not evaluate to a string" % repr(expr))
             #end if
             cur_input.push_iter(val.split("\n"))
-        #end submagic_insvar
+        #end submagic_insval
 
         def submagic_rib(line_rest) :
             if len(line_rest) != 0 :
@@ -502,14 +502,14 @@ class RManMagic(magic.Magics) :
                 "autodisplay" : submagic_autodisplay,
                 "display" : submagic_display,
                 "include" : submagic_include,
-                "insvar" : submagic_insvar,
+                "insval" : submagic_insval,
                 "rib" : submagic_rib,
                 "ribfile" : submagic_ribfile,
                 "sl" : submagic_sl,
                 "slfile" : submagic_slfile,
                 "teqser" : submagic_teqser,
             }
-        in_file_submagics = {"#", "autodisplay", "include", "insvar"}
+        in_file_submagics = {"#", "autodisplay", "include", "insval"}
 
     #begin run_aqsis
         temp_dir = tempfile.mkdtemp(prefix = "rman-magic-")
