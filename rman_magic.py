@@ -2,7 +2,7 @@
 # Cell magic for IPython that allows the inclusion of RenderMan code.
 # The graphical rendered output will be displayed in the notebook.
 #
-# Copyright 2016 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
+# Copyright 2016, 2017 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 # Licensed under CC-BY-SA <http://creativecommons.org/licenses/by-sa/4.0/>.
 #-
 
@@ -335,6 +335,22 @@ class RManMagic(magic.Magics) :
             do_include(line_rest[0], "sources")
         #end submagic_include
 
+        def submagic_insvar(line_rest) :
+            if len(line_rest) != 1 :
+                syntax_error("expecting only one arg for “insvar” directive")
+            #end if
+            expr = line_rest[0]
+            try :
+                val = get_ipython().ev(expr)
+            except Exception as exc :
+                syntax_error("insvar: when trying to evaluate %s: %s" % (repr(expr), repr(exc)))
+            #end try
+            if not isinstance(val, str) :
+                syntax_error("%s does not evaluate to a string" % repr(expr))
+            #end if
+            cur_input.push_iter(val.split("\n"))
+        #end submagic_insvar
+
         def submagic_rib(line_rest) :
             if len(line_rest) != 0 :
                 syntax_error("unexpected args for “rib” directive")
@@ -486,13 +502,14 @@ class RManMagic(magic.Magics) :
                 "autodisplay" : submagic_autodisplay,
                 "display" : submagic_display,
                 "include" : submagic_include,
+                "insvar" : submagic_insvar,
                 "rib" : submagic_rib,
                 "ribfile" : submagic_ribfile,
                 "sl" : submagic_sl,
                 "slfile" : submagic_slfile,
                 "teqser" : submagic_teqser,
             }
-        in_file_submagics = {"#", "autodisplay", "include"}
+        in_file_submagics = {"#", "autodisplay", "include", "insvar"}
 
     #begin run_aqsis
         temp_dir = tempfile.mkdtemp(prefix = "rman-magic-")
