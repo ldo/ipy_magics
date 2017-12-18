@@ -345,10 +345,13 @@ class RManMagic(magic.Magics) :
             except Exception as exc :
                 syntax_error("insval: when trying to evaluate %s: %s" % (repr(expr), repr(exc)))
             #end try
-            if not isinstance(val, str) :
-                syntax_error("%s does not evaluate to a string" % repr(expr))
+            if isinstance(val, str) :
+                cur_input.push_iter(val.split("\n"))
+            elif isinstance(val, (tuple, list)) and all (isinstance(s, str) for s in val) :
+                cur_input.push_iter(val)
+            else :
+                syntax_error("%s does not evaluate to a string or sequence of strings" % repr(expr))
             #end if
-            cur_input.push_iter(val.split("\n"))
         #end submagic_insval
 
         def submagic_rib(line_rest) :

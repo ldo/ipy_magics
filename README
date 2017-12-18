@@ -247,10 +247,11 @@ The valid submagics are as follows:
 
 * `%insval` *expression*
 
-    inserts the value of a Python expression at this point in
-    RIB or shader data. The expression must evaluate to a string
-    of one or more lines. Note that submagics are not recognized
-    in the included string.
+    inserts the value of a Python expression at this point in RIB or
+    shader data. The expression must evaluate to a string of one or
+    more lines, or a sequence of strings (which are interpreted as
+    separate lines). Note that submagics are not recognized in the
+    included string.
 
 * `%rib`
 
