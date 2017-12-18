@@ -242,8 +242,15 @@ The valid submagics are as follows:
 
 * `%include` *filename*
 
-    includes another file at this point in a RIB or shader data.
+    includes another file at this point in RIB or shader data.
     Note that submagics are not recognized in the included file.
+
+* `%insval` *expression*
+
+    inserts the value of a Python expression at this point in
+    RIB or shader data. The expression must evaluate to a string
+    of one or more lines. Note that submagics are not recognized
+    in the included string.
 
 * `%rib`
 
@@ -384,4 +391,4 @@ directives in the `.rib` files include two with the `framebuffer`
 mode, you will see two images displayed.
 
 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>
-2016 October 24
+2017 December 18
