@@ -600,6 +600,7 @@ class RManMagic(magic.Magics) :
                 "teqser" : submagic_teqser,
             }
         in_file_submagics = {"#", "autodisplay", "include", "insval"}
+          # ones which do not terminate current file contents
 
     #begin run_aqsis
         temp_dir = tempfile.mkdtemp(prefix = "rman-magic-")
