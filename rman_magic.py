@@ -8,6 +8,7 @@
 
 import enum
 import os
+import array
 import re
 import subprocess
 import tempfile
@@ -164,11 +165,21 @@ class RManMagic(magic.Magics) :
                 FILE_TYPE.SHADER : compile_shader,
             }
 
+        texfile_nr = 0
         ribfile_nr = 0
         imgfile_nr = 0
         outfile = None
         outfile_name = None
         outfile_type = None
+
+        def new_texfile_name() :
+            # pity Aqsis cannot accept PNG directly...
+            nonlocal texfile_nr
+            texfile_nr += 1
+            texfile_name = os.path.join(temp_dir, "tex%03d.tif" % texfile_nr)
+            return \
+                texfile_name
+        #end new_texfile_name
 
         def new_rib_file() :
             # starts writing a new .rib file into outfile.
@@ -434,6 +445,20 @@ class RManMagic(magic.Magics) :
         #end submagic_slfile
 
         def submagic_teqser(line_rest) :
+
+            def valid_bytes(b) :
+                # does b have a suitable type for an image bytes object.
+                return \
+                    (
+                        isinstance(b, bytes)
+                    or
+                        isinstance(b, bytearray)
+                    or
+                        isinstance(b, array.array) and b.typecode == "B"
+                    )
+            #end valid_bytes
+
+        #begin submagic_teqser
             valid_opts = \
                 {
                     "bake" : True,
@@ -444,6 +469,7 @@ class RManMagic(magic.Magics) :
                     "filter" : True,
                     "fov(envcube)" : True,
                     "quality" : True,
+                    "readval" : True,
                     "shadow" : False,
                     "swrap" : True,
                     "twrap" : True,
@@ -459,30 +485,91 @@ class RManMagic(magic.Magics) :
                 "",
                 list(k + ("", "=")[valid_opts[k]] for k in valid_opts)
               )
-            doing_envcube = any("envcube" == opt[0] for opt in opts)
-            expect_args = (2, 7)[doing_envcube]
+            doing_val = any("--readval" == opt[0] for opt in opts)
+            doing_envcube = any("--envcube" == opt[0] for opt in opts)
+            expect_args = ((2, 7)[doing_envcube], 1)[doing_val]
             if len(args) != expect_args :
                 syntax_error \
                   (
-                        "expecting %d args for teqser%s"
+                        "expecting %d args for teqser%s%s"
                     %
-                        (expect_args, ("", " -envcube")[doing_envcube])
+                        (
+                            expect_args,
+                            ("", " --envcube")[doing_envcube],
+                            ("", " --readval")[doing_val],
+                        )
                   )
             #end if
             cmd = ["teqser"]
             for keyword, value in opts :
                 if keyword.startswith("--") :
-                    keyword = keyword[2:]
-                    cmd.append \
-                      (
-                            "-%(keyword)s%(value)s"
-                        %
-                            {
-                                "keyword" : keyword,
-                                "value" :
-                                    (lambda : "", lambda : "=%s" % value)[valid_opts[keyword]](),
-                            }
-                      )
+                    if keyword == "--readval" :
+                        try :
+                            val = get_ipython().ev(value)
+                        except Exception as exc :
+                            syntax_error("teqser --readval: when trying to evaluate %s: %s" % (repr(value), repr(exc)))
+                        #end try
+                        if doing_envcube :
+                            if (
+                                    not isinstance(val, (tuple, list))
+                                or
+                                    len(val) != 6
+                                or
+                                    not all(valid_bytes(b) for b in val)
+                            ) :
+                                syntax_error("teqser --envcube --readval expects 6 bytes objects")
+                            #end if
+                        else :
+                            if not isinstance(val, (tuple, list)) :
+                                val = [val]
+                            #end if
+                            if len(val) != 1 or not valid_bytes(val[0]) :
+                                syntax_error("teqser --readval expects 1 bytes object")
+                            #end if
+                        #end if
+                        infiles = []
+                        for b in val :
+                            filename = new_texfile_name()
+                            if True :
+                                pngtemp = filename + ".png"
+                                pngout = open(pngtemp, "wb")
+                                pngout.write(b)
+                                pngout.flush()
+                                subprocess.run \
+                                  (
+                                    args = ("convert", pngtemp, filename),
+                                    universal_newlines = False,
+                                    check = True,
+                                    timeout = timeout
+                                  )
+                            else :
+                                # feeding PNG byte stream directly via pipe doesn’t seem to work
+                                # -- convert complains with “insufficient image data”
+                                subprocess.run \
+                                  (
+                                    args = ("convert", "png:/dev/stdin", filename),
+                                    input = b,
+                                    universal_newlines = False,
+                                    check = True,
+                                    timeout = timeout
+                                  )
+                            #end if
+                            infiles.append(filename)
+                        #end for
+                        args = infiles + args
+                    else :
+                        keyword = keyword[2:]
+                        cmd.append \
+                          (
+                                "-%(keyword)s%(value)s"
+                            %
+                                {
+                                    "keyword" : keyword,
+                                    "value" :
+                                        (lambda : "", lambda : "=%s" % value)[valid_opts[keyword]](),
+                                }
+                          )
+                    #end if
                 #end if
             #end for
             input_files = list(find_file(f, "textures") for f in args[:-1])
