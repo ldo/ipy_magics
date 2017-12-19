@@ -710,6 +710,8 @@ class RManMagic(magic.Magics) :
         "    --procedural-search=«dir» optional directories for Aqsis to find procedural shader libraries\n" \
         "    --resource-search=«dir» optional directories to search for files referenced" \
             " in submagics and for Aqsis to find additional files\n" \
+        "    --return-var=«varname» return images as a sequence of PNG byte objects in this" \
+            " variable instead of displaying them\n" \
         "    --shader-search=«dir» optional directories for Aqsis to find additional compiled shader files\n" \
         "    --texture-search=«dir» optional directories for Aqsis to find texture files"
         timeout = None
@@ -761,13 +763,14 @@ class RManMagic(magic.Magics) :
           (
             shlex.split(line),
             "",
-                ("debug", "resource-search=", "source-search=", "timeout=",)
+                ("debug", "resource-search=", "return-var=", "source-search=", "timeout=",)
             +
                 tuple(k + ("", "=")[map_aqsis_opts[k][1]] for k in map_aqsis_opts)
           )
         if len(args) != 0 :
             raise getopt.GetoptError("unexpected args")
         #end if
+        return_var = None
         for keyword, value in opts :
             if keyword == "--debug" :
                 debug = True
@@ -775,6 +778,8 @@ class RManMagic(magic.Magics) :
                 for k in ("sources", "resources") :
                     save_search_path(k, value)
                 #end for
+            elif keyword == "--return-var" :
+                return_var = value
             elif keyword == "--source-search" :
                 save_search_path("sources", value)
             elif keyword == "--timeout" :
@@ -798,12 +803,16 @@ class RManMagic(magic.Magics) :
             aqsis_opts = aqsis_opts
           )
         result = None
-        if len(images) != 0 :
-            for image in images :
-                display_png(image, raw = True)
-            #end for
+        if return_var != None :
+            get_ipython().push({return_var : images})
         else :
-            result = "No output!"
+            if len(images) != 0 :
+                for image in images :
+                    display_png(image, raw = True)
+                #end for
+            else :
+                result = "No output!"
+            #end if
         #end if
         return \
             result
