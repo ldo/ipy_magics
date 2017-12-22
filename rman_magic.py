@@ -707,6 +707,9 @@ class RManMagic(magic.Magics) :
         "    --verbose=«verbosity» verbosity level 0-3, default is 1\n" \
         "\n" \
         "    --archive-search=«dir» optional directory for Aqsis to find “archive” .rib files\n" \
+        "    --post-process=«code» run the specified Python «code» after generating all the images." \
+            " Must be used in conjunction with --return-var, and you should include" \
+            " the specified variable name somewhere in «code»." \
         "    --procedural-search=«dir» optional directories for Aqsis to find procedural shader libraries\n" \
         "    --resource-search=«dir» optional directories to search for files referenced" \
             " in submagics and for Aqsis to find additional files\n" \
@@ -763,7 +766,7 @@ class RManMagic(magic.Magics) :
           (
             shlex.split(line),
             "",
-                ("debug", "resource-search=", "return-var=", "source-search=", "timeout=",)
+                ("debug", "post-process=", "resource-search=", "return-var=", "source-search=", "timeout=",)
             +
                 tuple(k + ("", "=")[map_aqsis_opts[k][1]] for k in map_aqsis_opts)
           )
@@ -771,6 +774,7 @@ class RManMagic(magic.Magics) :
             raise getopt.GetoptError("unexpected args")
         #end if
         return_var = None
+        post_process = None
         for keyword, value in opts :
             if keyword == "--debug" :
                 debug = True
@@ -778,6 +782,8 @@ class RManMagic(magic.Magics) :
                 for k in ("sources", "resources") :
                     save_search_path(k, value)
                 #end for
+            elif keyword == "--post-process" :
+                post_process = value
             elif keyword == "--return-var" :
                 return_var = value
             elif keyword == "--source-search" :
@@ -794,6 +800,9 @@ class RManMagic(magic.Magics) :
                 #end if
             #end if
         #end for
+        if post_process != None and return_var == None :
+            raise getopt.GetoptError("--post-process requires --return-var")
+        #end if
         images = self.run_aqsis \
           (
             input = cell,
@@ -805,6 +814,9 @@ class RManMagic(magic.Magics) :
         result = None
         if return_var != None :
             get_ipython().push({return_var : images})
+            if post_process != None :
+                get_ipython().ex(post_process)
+            #end if
         else :
             if len(images) != 0 :
                 for image in images :
