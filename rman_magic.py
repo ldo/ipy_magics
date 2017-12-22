@@ -709,7 +709,7 @@ class RManMagic(magic.Magics) :
         "    --archive-search=«dir» optional directory for Aqsis to find “archive” .rib files\n" \
         "    --post-process=«code» run the specified Python «code» after generating all the images." \
             " Must be used in conjunction with --return-var, and you should include" \
-            " the specified variable name somewhere in «code»." \
+            " the specified variable name somewhere in «code».\n" \
         "    --procedural-search=«dir» optional directories for Aqsis to find procedural shader libraries\n" \
         "    --resource-search=«dir» optional directories to search for files referenced" \
             " in submagics and for Aqsis to find additional files\n" \
