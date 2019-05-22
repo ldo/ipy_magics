@@ -97,7 +97,7 @@ class RManMagic(magic.Magics) :
               (
                 subprocess.check_output
                   (
-                    args = ("convert", filename, "png:/dev/stdout"),
+                    args = ("convert", filename, "png:-"),
                     universal_newlines = False,
                     timeout = timeout
                   )
@@ -547,7 +547,7 @@ class RManMagic(magic.Magics) :
                                 # -- convert complains with “insufficient image data”
                                 subprocess.run \
                                   (
-                                    args = ("convert", "png:/dev/stdin", filename),
+                                    args = ("convert", "png:-", filename),
                                     input = b,
                                     universal_newlines = False,
                                     check = True,
