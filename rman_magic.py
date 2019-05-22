@@ -2,7 +2,7 @@
 # Cell magic for IPython that allows the inclusion of RenderMan code.
 # The graphical rendered output will be displayed in the notebook.
 #
-# Copyright 2016, 2017 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
+# Copyright 2016, 2017, 2019 Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 # Licensed under CC-BY-SA <http://creativecommons.org/licenses/by-sa/4.0/>.
 #-
 
@@ -12,6 +12,7 @@ import array
 import re
 import subprocess
 import tempfile
+import gzip
 import shutil
 import shlex
 import getopt
@@ -220,7 +221,11 @@ class RManMagic(magic.Magics) :
             #end push_iter
 
             def push_file(self, filename) :
-                self.push_iter(open(filename, "r").read().split("\n"))
+                self.push_iter \
+                  (
+                    (open, gzip.open)[filename.endswith(".gz")](filename, "rt")
+                        .read().split("\n")
+                  )
             #end push_file
 
             def __iter__(self) :
