@@ -6,6 +6,7 @@
 # Licensed under CC-BY-SA <http://creativecommons.org/licenses/by-sa/4.0/>.
 #-
 
+import sys
 import enum
 import os
 import array
@@ -771,7 +772,15 @@ class RManMagic(magic.Magics) :
           (
             shlex.split(line),
             "",
-                ("debug", "post-process=", "resource-search=", "return-var=", "source-search=", "timeout=",)
+                (
+                    "debug",
+                    "post-process=",
+                    "resource-search=",
+                    "return-var=",
+                    "source-search=",
+                    "timed",
+                    "timeout=",
+                )
             +
                 tuple(k + ("", "=")[map_aqsis_opts[k][1]] for k in map_aqsis_opts)
           )
@@ -780,6 +789,7 @@ class RManMagic(magic.Magics) :
         #end if
         return_var = None
         post_process = None
+        timed = False
         for keyword, value in opts :
             if keyword == "--debug" :
                 debug = True
@@ -793,6 +803,8 @@ class RManMagic(magic.Magics) :
                 return_var = value
             elif keyword == "--source-search" :
                 save_search_path("sources", value)
+            elif keyword == "--timed" :
+                timed = True
             elif keyword == "--timeout" :
                 timeout = float(value)
             elif keyword.startswith("--") and keyword[2:] in map_aqsis_opts :
@@ -808,6 +820,9 @@ class RManMagic(magic.Magics) :
         if post_process != None and return_var == None :
             raise getopt.GetoptError("--post-process requires --return-var")
         #end if
+        if timed :
+            start_time = os.times()
+        #end if
         images = self.run_aqsis \
           (
             input = cell,
@@ -816,6 +831,36 @@ class RManMagic(magic.Magics) :
             source_search = source_search,
             aqsis_opts = aqsis_opts
           )
+        if timed :
+            finish_time = os.times()
+            sys.stdout.write \
+              (
+                    "Time taken: %.4gs CPU, %.4gs elapsed"
+                %
+                    (
+                            (
+                                finish_time.user
+                            +
+                                finish_time.system
+                            +
+                                finish_time.children_user
+                            +
+                                finish_time.children_system
+                            )
+                        -
+                            (
+                                start_time.user
+                            +
+                                start_time.system
+                            +
+                                start_time.children_user
+                            +
+                                start_time.children_system
+                            ),
+                        finish_time.elapsed - start_time.elapsed
+                    )
+              )
+        #end if
         result = None
         if return_var != None :
             get_ipython().push({return_var : images})
