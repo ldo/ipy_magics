@@ -614,6 +614,9 @@ class RManMagic(magic.Magics) :
             work_dir = os.path.join(temp_dir, "work")
             os.mkdir(work_dir)
               # separate subdirectory for files created by caller
+            if keep_temps :
+                print("keeping temp files in %s" % work_dir)
+            #end if
             submagic_pat = re.compile(r"^\%(\w+)(?:\s+(.+))?$")
             cur_input = InputStack()
               # actually will never be more than 1 deep, since I don’t recognize
