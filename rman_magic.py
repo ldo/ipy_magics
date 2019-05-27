@@ -6,7 +6,6 @@
 # Licensed under CC-BY-SA <http://creativecommons.org/licenses/by-sa/4.0/>.
 #-
 
-import sys
 import enum
 import os
 import array
@@ -833,7 +832,7 @@ class RManMagic(magic.Magics) :
           )
         if timed :
             finish_time = os.times()
-            sys.stdout.write \
+            print \
               (
                     "Time taken: %.4gs CPU, %.4gs elapsed"
                 %
