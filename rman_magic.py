@@ -34,6 +34,10 @@ class RManMagic(magic.Magics) :
         temp_dir = None
         work_dir = None
 
+        def syntax_error(reason) :
+            raise SyntaxError(reason, ("<cell input>", linenr, None, line))
+        #end syntax_error
+
         def find_file(filename, search_type, must_exist = True) :
             file_arg = filename
             if not file_arg.startswith("/") :
@@ -85,10 +89,6 @@ class RManMagic(magic.Magics) :
             RIB = 1
             SHADER = 2
         #end FILE_TYPE
-
-        def syntax_error(reason) :
-            raise SyntaxError(reason, ("<cell input>", linenr, None, line))
-        #end syntax_error
 
         imgfile_names = None
         images = []
